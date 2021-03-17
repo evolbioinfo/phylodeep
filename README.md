@@ -2,7 +2,13 @@
 
 PhyloDeep is a python library for parameter estimation and model selection from phylogenetic trees, based on deep learning.
 
-For more information on the method, please refer to the preprint here: 
+For more information on the method, please refer to the preprint here: [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v1)
+
+Together with the phylodeep package code (in the folder phylodeep), we provide:
+- all data shown in the preprint (in the folder data_publication)
+- used simulators to train deep learners (in the folder simulators)
+- the tree analyzed in the study as a showcase application (in the folder test_tree_HIV_Zurich, for description and 
+  original reference see below)
 
 ## Installation
 
@@ -57,6 +63,10 @@ conda activate phyloenv
 
 We recommend to perform a priori model adequacy first to assess whether the input data resembles well the 
 simulations on which the neural networks were trained.
+
+Here, we use an HIV tree reconstructed from 200 sequences, published in Phylodynamics on local sexual contact networks 
+by Rasmussen et al in PloS Computational Biology in 2017, and that you can find at [github](./test_tree_HIV_Zurich/Zurich.trees) 
+and in this [repository](https://github.com/evolbioinfo/phylodeep/blob/main/test_tree_HIV_Zurich/Zurich.trees). 
 
 ### Python
 
@@ -147,10 +157,7 @@ Finally, under the selected model BDSS, we predict parameter values together wit
 The point estimates for parameters that are no time related (R naught, X transmission and Superspreading fraction) are
 well inside the parameter ranges of simulations and thus seem valid.
 
-## Citation
+## Preprint
 
-
-## Contributing
-
-
-## License
+Voznica J, Zhukova A, Boskova V, Saulnier E, Lemoine F, Moslonka-Lefebvre M, Gascuel O (2021)
+__Deep learning from phylogenies to uncover the transmission dynamics of epidemics__. [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v1)
