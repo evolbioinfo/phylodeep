@@ -2,13 +2,18 @@
 
 PhyloDeep is a python library for parameter estimation and model selection from phylogenetic trees, based on deep learning.
 
-For more information on the method, please refer to the preprint here: [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v1)
+For more information on the method, including the covered parameter subspace, please refer to the preprint here: [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v1)
 
 Together with the phylodeep package code (in the folder phylodeep), we provide:
 - all data shown in the preprint (in the folder data_publication)
 - used simulators to train deep learners (in the folder simulators)
 - the tree analyzed in the study as a showcase application (in the folder test_tree_HIV_Zurich, for description and 
   original reference see below)
+
+The data are extensive (including 50.000 testing trees), we thus do not recommend copying the whole repository.
+
+The installation time of the package can be up to several minutes, including downloading dependencies. The run time 
+should be a couple of seconds. The package was tested in Linux (Ubuntu 18.08), Windows 10 and MacOS.
 
 ## Installation
 
@@ -155,7 +160,13 @@ Finally, under the selected model BDSS, we predict parameter values together wit
 | __CI 97.5%__  |  2.08  |  12.26  |  10  |  0.133  |
 
 The point estimates for parameters that are no time related (R naught, X transmission and Superspreading fraction) are
-well inside the parameter ranges of simulations and thus seem valid.
+well inside the parameter ranges of simulations and thus seem valid (R naught between 1 and 5, x transmission between 3 
+and 10, superspreading fraction between 0.05 and 0.20). 
+
+
+The time related parameters (infectious and eventually incubation period for BDEI model) are in the same units as the 
+branches of input tree, here in years (9.78 years). The covered parameter space for time related parameters is large 
+due to internal rescaling of all input trees. It should apply to any tree.
 
 ## Preprint
 
