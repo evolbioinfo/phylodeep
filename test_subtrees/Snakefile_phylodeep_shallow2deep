@@ -1,0 +1,131 @@
+import os
+
+"""
+Create small trees by extracting clusters of appropriate size
+"""
+
+# To run locally:
+# snakemake --snakefile Snakefile_phylodeep_shallow2deep --keep-going --cores 7
+
+localrules: all
+
+sim_folder = os.path.abspath(os.path.join('..', 'data_publication'))
+
+rule all:
+    input:
+        expand(os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_errors.png'), model=['BD', 'BDEI'])
+#        os.path.join(sim_folder, 'cluster', 'estimates.tab'),
+#        pdf = os.path.join(sim_folder, 'cluster', 'errors.png'),
+#        os.path.join(sim_folder, 'huge', 'stats.tab'),
+
+
+
+rule extract_subtree:
+    '''
+    Parses PhyloDeep data.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'Fig_3', 'test_trees', '{model}_large_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
+    output:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_8', 'test_trees', '{model}_subtree_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'TARGET.csv.gz'),
+    params:
+        mem = 2000,
+        name = 'subtrees_{model}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 main_extract_subtree.py --in_log {input.log} --in_nwk {input.nwk} \
+        --out_nwk {output.nwk} --out_log {output.log} --min_n 50 --max_n 199
+        """
+
+rule combine_estimates:
+    '''
+    Combine estimates.
+    '''
+    input:
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'CNN_CBLV.csv.gz'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'FFNN_SS.csv.gz'),
+        real = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'TARGET.csv.gz'),
+        est_b = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'BEAST2.csv.gz'),
+        est_CNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
+    output:
+        tab = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_estimates.tab'),
+    params:
+        mem = 2000,
+        name = 'estimates',
+        qos = 'fast',
+    threads: 1
+    shell:
+        """
+        python3 main_summary_table.py --real {input.real} \
+        --estimated_CNN {input.est_CNN} --estimated_FFNN {input.est_FFNN} \
+        --estimated_beast2 {input.est_b} \
+        --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
+        --tab {output.tab} --model {wildcards.model}
+        """
+
+rule plot_errors:
+    '''
+    Plots the errors.
+    '''
+    input:
+        tab = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_estimates.tab'),
+    output:
+        png = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_errors.png'),
+    params:
+        mem = 2000,
+        name = 'errors',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 main_plot_error.py --estimates {input.tab} --png {output.png}
+        """
+
+rule estimate_params_p_fixed:
+    '''
+    Estimate parameters on the simulated forest.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_8', 'test_trees', '{model}_subtree_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'TARGET.csv.gz'),
+    output:
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'CNN_CBLV.csv.gz'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'FFNN_SS.csv.gz'),
+    params:
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'CNN_CBLV.csv'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_subtree', 'FFNN_SS.csv'),
+        mem = 2000,
+        name = 'estimate_{model}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        i=1
+        pcol=`gzip -dc {input.log} | head -n 1 | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
+        for p in `gzip -dc {input.log} | cut -d, -f$pcol | tail -n 100`
+        do
+            nwk=`gzip -dc {input.nwk} | sed -n "$i,${{i}}p"`
+            echo $nwk > {input.nwk}.$i
+            echo $p
+            paramdeep -t {input.nwk}.$i -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN}.$i
+            paramdeep -t {input.nwk}.$i -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN}.$i
+            if [[ $i == 1 ]]
+            then
+                cat {output.est_CNN}.$i | cut -d, -f2- > {params.est_CNN}
+                cat {output.est_FFNN}.$i | cut -d, -f2- > {params.est_FFNN}
+            else
+                cat {output.est_CNN}.$i | tail -n 1 | cut -d, -f2- >> {params.est_CNN}
+                cat {output.est_FFNN}.$i | tail -n 1 | cut -d, -f2- >> {params.est_FFNN}
+            fi
+            rm -rf {output.est_FFNN}.$i {output.est_CNN}.$i {input.nwk}.$i
+            i=$(($i + 1))
+        done
+        gzip {params.est_CNN}
+        gzip {params.est_FFNN}
+        """
+
