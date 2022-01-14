@@ -14,15 +14,10 @@ sim_folder = os.path.abspath(os.path.join('..', 'data_publication'))
 rule all:
     input:
         expand(os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_errors.png'), model=['BD', 'BDEI'])
-#        os.path.join(sim_folder, 'cluster', 'estimates.tab'),
-#        pdf = os.path.join(sim_folder, 'cluster', 'errors.png'),
-#        os.path.join(sim_folder, 'huge', 'stats.tab'),
 
-
-
-rule extract_subtree:
+rule estimate_from_subtree:
     '''
-    Parses PhyloDeep data.
+    Extracts the oldest part of the subtree, estimates parameters on it.
     '''
     input:
         nwk = os.path.join(sim_folder, 'Fig_3', 'test_trees', '{model}_large_100.nwk.gz'),
@@ -30,6 +25,8 @@ rule extract_subtree:
     output:
         nwk = os.path.join(sim_folder, 'Supp_Fig_9', 'test_trees', '{model}_subtree_100.nwk.gz'),
         log = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'TARGET.csv.gz'),
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'CNN_CBLV.csv.gz'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'FFNN_SS.csv.gz'),
     params:
         mem = 2000,
         name = 'subtrees_{model}',
@@ -38,7 +35,8 @@ rule extract_subtree:
     shell:
         """
         python3 main_extract_subtree.py --in_log {input.log} --in_nwk {input.nwk} \
-        --out_nwk {output.nwk} --out_log {output.log} --min_n 50 --max_n 199 --root
+        --out_nwk {output.nwk} --out_log {output.log} --min_n 50 --max_n 199 \
+        --out_est_CNN {output.est_CNN} --out_est_FFNN {output.est_FFNN} --model {wildcards.model} --root
         """
 
 rule combine_estimates:
@@ -85,47 +83,3 @@ rule plot_errors:
         """
         python3 main_plot_error.py --estimates {input.tab} --png {output.png}
         """
-
-rule estimate_params_p_fixed:
-    '''
-    Estimate parameters on the simulated forest.
-    '''
-    input:
-        nwk = os.path.join(sim_folder, 'Supp_Fig_9', 'test_trees', '{model}_subtree_100.nwk.gz'),
-        log = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'TARGET.csv.gz'),
-    output:
-        est_CNN = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'CNN_CBLV.csv.gz'),
-        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'FFNN_SS.csv.gz'),
-    params:
-        est_CNN = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'CNN_CBLV.csv'),
-        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_9', 'predicted_values', '{model}_subtree', 'FFNN_SS.csv'),
-        mem = 2000,
-        name = 'estimate_{model}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        i=1
-        pcol=`gzip -dc {input.log} | head -n 1 | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
-        for p in `gzip -dc {input.log} | cut -d, -f$pcol | tail -n 100`
-        do
-            nwk=`gzip -dc {input.nwk} | sed -n "$i,${{i}}p"`
-            echo $nwk > {input.nwk}.$i
-            echo $p
-            paramdeep -t {input.nwk}.$i -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN}.$i
-            paramdeep -t {input.nwk}.$i -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN}.$i
-            if [[ $i == 1 ]]
-            then
-                cat {output.est_CNN}.$i | cut -d, -f2- > {params.est_CNN}
-                cat {output.est_FFNN}.$i | cut -d, -f2- > {params.est_FFNN}
-            else
-                cat {output.est_CNN}.$i | tail -n 1 | cut -d, -f2- >> {params.est_CNN}
-                cat {output.est_FFNN}.$i | tail -n 1 | cut -d, -f2- >> {params.est_FFNN}
-            fi
-            rm -rf {output.est_FFNN}.$i {output.est_CNN}.$i {input.nwk}.$i
-            i=$(($i + 1))
-        done
-        gzip {params.est_CNN}
-        gzip {params.est_FFNN}
-        """
-
