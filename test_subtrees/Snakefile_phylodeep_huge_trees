@@ -1,0 +1,185 @@
+import os
+
+"""
+Create small trees by keeping the oldest part of the tree
+"""
+
+# To run locally:
+# snakemake --snakefile Snakefile_phylodeep_huge_trees --keep-going --cores 7
+
+localrules: all
+
+sim_folder = os.path.abspath(os.path.join('..', 'data_publication'))
+
+rule all:
+    input:
+        os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_errors.png')
+
+rule estimate_from_subtree:
+    '''
+    Extracts the oldest part of the subtree, estimates parameters on it.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_huge_100.{i}.nwk.gz'),
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_huge', 'TARGET.{i}.csv.gz'),
+    output:
+        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_subtree_100.{i}.nwk.gz')),
+        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'TARGET.{i}.csv.gz')),
+        est_CNN = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'CNN_CBLV.{i}.csv.gz')),
+        est_FFNN = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'FFNN_SS.{i}.csv.gz')),
+    params:
+        mem = 2000,
+        name = 'subtrees_BDEI.{i}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 main_extract_subtree.py --in_log {input.log} --in_nwk {input.nwk} \
+        --out_nwk {output.nwk} --out_log {output.log} --min_n 50 --max_n 500 \
+        --out_est_CNN {output.est_CNN} --out_est_FFNN {output.est_FFNN} --model BDEI
+        """
+
+
+rule split:
+    '''
+    Splits the nwk file into subtrees.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_huge_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_huge', 'TARGET.csv.gz'),
+    output:
+        nwk = temp(expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_huge_100.{i}.nwk.gz'), i=range(100))),
+        log = temp(expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_huge', 'TARGET.{i}.csv.gz'), i=range(100)))
+    params:
+        mem = 2000,
+        name = 'split',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 main_split.py --in_log {input.log} --in_nwk {input.nwk} \
+        --out_nwk {output.nwk} --out_log {output.log}
+        """
+
+rule combine:
+    '''
+    Combines files.
+    '''
+    input:
+        nwk = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_subtree_100.{i}.nwk.gz'), i=range(100)),
+        log = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'TARGET.{i}.csv.gz'), i=range(100)),
+        est_CNN = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'CNN_CBLV.{i}.csv.gz'), i=range(100)),
+        est_FFNN = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'FFNN_SS.{i}.csv.gz'), i=range(100)),
+    output:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_subtree_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'TARGET.csv.gz'),
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'CNN_CBLV.csv.gz'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'FFNN_SS.csv.gz'),
+    params:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_subtree_100.nwk'),
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'TARGET.csv'),
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'CNN_CBLV.csv'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'FFNN_SS.csv'),
+        mem = 2000,
+        name = 'split',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        rm -rf {output.nwk} {params.nwk}
+        for f in {input.nwk}
+        do
+            gzip -dc $f >> {params.nwk}
+        done
+        gzip {params.nwk}
+
+        i=1
+        rm -rf {output.log} {params.log}
+        for f in {input.log}
+        do
+            if [[ $i == 1 ]]
+            then
+                gzip -dc $f > {params.log}
+                i=0
+            else
+                gzip -dc $f | tail -n 1 >> {params.log}
+            fi
+        done
+        gzip {params.log}
+
+
+        i=1
+        rm -rf {output.est_CNN} {params.est_CNN}
+        for f in {input.est_CNN}
+        do
+            if [[ $i == 1 ]]
+            then
+                gzip -dc $f > {params.est_CNN}
+                i=0
+            else
+                gzip -dc $f | tail -n 1 >> {params.est_CNN}
+            fi
+        done
+        gzip {params.est_CNN}
+
+        i=1
+        rm -rf {output.est_FFNN} {params.est_FFNN}
+        for f in {input.est_FFNN}
+        do
+            if [[ $i == 1 ]]
+            then
+                gzip -dc $f > {params.est_FFNN}
+                i=0
+            else
+                gzip -dc $f | tail -n 1 >> {params.est_FFNN}
+            fi
+        done
+        gzip {params.est_FFNN}
+        """
+
+
+rule combine_estimates:
+    '''
+    Combine estimates.
+    '''
+    input:
+        est_CNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'CNN_CBLV.csv.gz'),
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'FFNN_SS.csv.gz'),
+        real = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_subtree', 'TARGET.csv.gz'),
+        real_b = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDEI_large', 'TARGET.csv.gz'),
+        est_b = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDEI_large', 'BEAST2.csv.gz'),
+        est_CNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDEI_large', 'CNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDEI_large', 'CNN_CBLV.csv.gz'),
+    output:
+        tab = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_estimates.tab'),
+    params:
+        mem = 2000,
+        name = 'estimates',
+        qos = 'fast',
+    threads: 1
+    shell:
+        """
+        python3 main_summary_table.py --real {input.real} --real_b {input.real_b} \
+        --estimated_CNN {input.est_CNN} --estimated_FFNN {input.est_FFNN}  \
+        --estimated_beast2 {input.est_b} \
+        --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
+        --tab {output.tab} --model BDEI
+        """
+
+rule plot_errors:
+    '''
+    Plots the errors.
+    '''
+    input:
+        tab = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_estimates.tab'),
+    output:
+        png = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_errors.png'),
+    params:
+        mem = 2000,
+        name = 'errors',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 main_plot_error.py --estimates {input.tab} --png {output.png}
+        """

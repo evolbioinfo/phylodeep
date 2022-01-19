@@ -20,14 +20,18 @@ if __name__ == "__main__":
     df = pd.read_csv(params.estimates, sep='\t', index_col=0)
 
     real_df = df.loc[df['type'] == 'real', :]
-    df = df.loc[df['type'] != 'real', :]
-    types = sorted(df['type'].unique(), key=lambda _: (_[0] != 'B', -len(_)))
+    real_df_subtree = df.loc[df['type'] == 'real-subtrees', :]
+    df = df.loc[(df['type'] != 'real') & (df['type'] != 'real-subtrees'), :]
+    types = sorted(df['type'].unique(), key=lambda _: (_[0] != 'B', len(_)))
     pars = [c for c in df.columns if c not in ['type', 'p']]
 
     for type in types:
         mask = df['type'] == type
         for par in pars:
-            df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df[par]) / real_df[par]
+            if 'subtree' in type:
+                df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df_subtree[par]) / real_df_subtree[par]
+            else:
+                df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df[par]) / real_df[par]
 
     plt.clf()
     n_types = len(types)
