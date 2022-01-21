@@ -17,6 +17,6 @@ if __name__ == "__main__":
     with gzip.open(params.in_nwk, 'rt') as f:
         nwks = f.read().split(';')[:-1]
     for (i, tree, nwk, log) in zip(df.index, nwks, params.out_nwk, params.out_log):
-        with gzip.open(nwk, 'wb') as f:
-            f.write('{};\n'.format(tree).encode())
-        df.loc[[i], :].to_csv(log, compression='gzip', index=False)
+        with open(nwk, 'w+') as f:
+            f.write('{};\n'.format(tree))
+        df.loc[[i], :].to_csv(log, index=False)
