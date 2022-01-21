@@ -89,7 +89,7 @@ def encode_into_summary_statistics(tree_input, sampling_proba):
 
     :param tree_input: ete3.Tree, on which the summary statistics will be computed
     :param sampling_proba: float, presumed sampling probability for all the trees
-    :return: pd.Dataframe, encoded rescaled input trees in the form of summary statistics and float, a rescale factor
+    :return: pd.DataFrame, encoded rescaled input trees in the form of summary statistics and float, a rescale factor
     """
     # local copy of input tree
     tree = tree_input.copy()

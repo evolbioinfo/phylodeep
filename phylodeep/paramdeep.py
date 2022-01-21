@@ -17,15 +17,17 @@ param_model_options = [BD, BDEI, BDSS]
 def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, ci_computation=False, **kvargs):
     """
     Provides model selection between selected models for given tree.
-    For more information on the covered parameter subspaces, we refer you to the following paper: ...
-    :param tree_file: path to a file with a dated tree in newick format (must be rooted, without polytomies and of size
-    between 50 adn 500 tips).
+    For more information on the covered parameter subspaces, we refer you to the following paper:
+    Voznica et al. 2021 doi:10.1101/2021.03.11.435006.
+
+    :param tree_file: path to a file with a dated tree in newick format
+        (must be rooted, without polytomies and containing at least 50 tips).
     :type tree_file: str
     :param proba_sampling: presumed sampling probability for all input trees, value between 0.01 and 1
     :type proba_sampling: float
     :param model: option to choose, for a tree of size between 50 and 199 tips, you can choose either 'BD' (basic
-    birth-death model with incomplete sampling BD), 'BDEI' (BD with exposed class); for a tree of size between 200 and
-    500 tips, you can choose between 'BD', 'BDEI' and  'BDSS' (BD with superspreading).
+    birth-death model with incomplete sampling BD), 'BDEI' (BD with exposed class); for a tree of size >= 200 tips,
+    you can choose between 'BD', 'BDEI' and  'BDSS' (BD with superspreading).
     :type model: str
     :param vector_representation: option to choose between 'FFNN_SUMSTATS' to select a network trained on summary
     statistics or 'CNN_FULL_TREE' to select a network trained on full tree representation, by default, we use
@@ -35,7 +37,7 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
     estimate for each parameter. With ci_computation=True, paramdeep computes and outputs 95% confidence intervals
     (2.5% and 97.5%) for estimated value using approximated parametric bootstrap.
     :type ci_computation: bool
-    :return: pd.df, predicted parameter values (and 95% CIs if option chosen)
+    :return: pd.DataFrame, predicted parameter values (and 95% CIs if option chosen)
     """
     # check options
     if proba_sampling > 1 or proba_sampling < 0.01:
@@ -52,34 +54,60 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
     tree_size = check_tree_size(tree)
 
     # only inference on short trees available for BDSS
-    if tree_size == "SMALL" and model == "BDSS":
-        raise ValueError('Parameter inference under BDSS is available only for trees of size between 200 and 500 tips')
+    if tree_size == SMALL and model == BDSS:
+        raise ValueError('Parameter inference under {} is available only for trees of size above {}'
+                         .format(BDSS, MIN_TREE_SIZE_LARGE))
 
+    if tree_size == HUGE:
+        predictions = pd.DataFrame()
+        sizes = []
+        # estimate parameters on subtrees
+        for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_SMALL if model != BDSS else MIN_TREE_SIZE_LARGE,
+                                        max_size=MIN_TREE_SIZE_HUGE - 1):
+            subtree_size = check_tree_size(subtree)
+            predictions = predictions.append(
+                _paramdeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation, ci_computation))
+            sizes.append(len(subtree))
+        # could not find any subtree of the required size, so let's just take the top part of the tree
+        if not sizes:
+            subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
+            return _paramdeep_tree(subtree, LARGE, model, proba_sampling, vector_representation, ci_computation)
+        df = pd.DataFrame(columns=predictions.columns)
+        indices = predictions.index.unique()
+        for i in indices:
+            subpredictions = predictions[predictions.index == i]
+            subpredictions['weight'] = sizes
+            subpredictions['weight'] /= sum(sizes)
+            for col in df.columns:
+                df.loc[i, col] = (subpredictions[col] * subpredictions['weight']).sum()
+        return df
+
+    return _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representation, ci_computation)
+
+
+def _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representation, ci_computation):
     # encode the trees
     if vector_representation == SUMSTATS:
         encoded_tree, rescale_factor = encode_into_summary_statistics(tree, proba_sampling)
     elif vector_representation == FULL:
         encoded_tree, rescale_factor = encode_into_most_recent(tree, proba_sampling)
-
     # load model
     if vector_representation == SUMSTATS:
         loaded_model, scaler = model_scale_load_ffnn(tree_size, model)
     elif vector_representation == FULL:
         loaded_model = model_load_cnn(tree_size, model)
-
     # predict values:
     if vector_representation == SUMSTATS:
         encoded_tree = scaler.transform(encoded_tree)
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
     elif vector_representation == FULL:
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
-
     # annotate predictions:
     predictions = annotator(predictions, model)
-
     # if required, computation of 95% confidence intervals
     if ci_computation:
-        predictions = ci_comp(predictions, model, rescale_factor, len(tree), tree_size, proba_sampling, vector_representation)
+        predictions = ci_comp(predictions, model, rescale_factor, len(tree), tree_size, proba_sampling,
+                              vector_representation)
     else:
         predictions = rescaler(predictions, rescale_factor)
     return predictions
@@ -98,7 +126,7 @@ def main():
 
     tree_group = parser.add_argument_group('tree-related arguments')
     tree_group.add_argument('-t', '--tree_file', help="input tree in newick format (must be rooted, without polytomies"
-                                                      " and of size between 50 adn 500 tips).",
+                                                      " and containing at least 50 tips).",
                             type=str, required=True)
     tree_group.add_argument('-p', '--proba_sampling', help="presumed sampling probability for removed tips. Must be "
                                                            "between 0.01 and 1",
@@ -112,7 +140,7 @@ def main():
                                        " you can choose either BD (basic birth-death with incomplete sampling) or"
                                        " BDEI (BD with exposed-infectious) for trees of size between 50 and 199 tips"
                                        " and BD, BDEI or BDSS (BD with superspreading individuals) for trees of size"
-                                       " between 200 and 500 tips.")
+                                       " >= 200 tips.")
 
     prediction_group.add_argument('-v', '--vector_representation', choices=[FULL, SUMSTATS], required=False, type=str,
                                   default=FULL,

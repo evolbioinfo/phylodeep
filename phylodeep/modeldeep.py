@@ -15,20 +15,21 @@ prediction_method_options = [FULL, SUMSTATS]
 def modeldeep(tree_file, proba_sampling, vector_representation=FULL, **kvargs):
     """
     Provides model selection between birth-death models models for given tree.
-    For trees of size 200-500 tips, it performs a selection between the basic birth-death model with incomplete sampling
+    For trees of size >= 200 tips, it performs a selection between the basic birth-death model with incomplete sampling
     (BD), the birth-death model with exposed and infectious classes (BDEI) and birth-death model with superspreading
     (BDSS).
     For trees of size 50-199, it performs a model selection between BD and BDEI. For more information on the covered
-    parameter subspaces, we refer you to the following paper: ...
-    :param tree_file: path to a file with a dated tree in newick format (must be rooted, without polytomies and of size
-    between 50 adn 500 tips).
+    parameter subspaces, we refer you to the following paper: Voznica et al. 2021 doi:10.1101/2021.03.11.435006.
+
+    :param tree_file: path to a file with a dated tree in newick format
+        (must be rooted, without polytomies and containing at least 50 tips).
     :type tree_file: str
     :param proba_sampling: presumed sampling probability for all input trees, value between 0.01 and 1
     :type proba_sampling: float
     :param vector_representation: option to choose between 'FFNN_SUMSTATS' to select a network trained on summary statistics
     or 'CNN_FULL_TREE' to select a network trained on full tree representation, by default, we use 'CNN FULL TREE'
     :type vector_representation: str
-    :return: pd.df, model selection results in the form of probabilities of each model
+    :return: pd.DataFrame, model selection results in the form of probabilities of each model
     """
     # check options
     if proba_sampling > 1 or proba_sampling < 0.01:
@@ -42,34 +43,55 @@ def modeldeep(tree_file, proba_sampling, vector_representation=FULL, **kvargs):
     # check tree size
     tree_size = check_tree_size(tree)
 
-    if tree_size == "LARGE":
+    if tree_size != SMALL:
         model = "BD_vs_BDEI_vs_BDSS"
     else:
         model = "BD_vs_BDEI"
+
+    if tree_size == HUGE:
+        predictions = pd.DataFrame()
+        sizes = []
+        # estimate model probabilities on subtrees
+        for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_LARGE, max_size=MIN_TREE_SIZE_HUGE - 1):
+            subtree_size = check_tree_size(subtree)
+            predictions = predictions.append(
+                _modeldeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation))
+            sizes.append(len(subtree))
+        # could not find any subtree of the required size, so let's just take the top part of the tree
+        if not sizes:
+            subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
+            return _modeldeep_tree(subtree, LARGE, model, proba_sampling, vector_representation)
+        df = pd.DataFrame(columns=predictions.columns)
+        predictions['weight'] = sizes
+        predictions['weight'] /= sum(sizes)
+        for col in df.columns:
+            df.loc[0, col] = (predictions[col] * predictions['weight']).sum()
+        return df
+
+    return _modeldeep_tree(tree, tree_size, model, proba_sampling, vector_representation)
+
+
+def _modeldeep_tree(tree, tree_size, model, proba_sampling, vector_representation):
     # encode the trees
     if vector_representation == SUMSTATS:
         encoded_tree, rescale_factor = encode_into_summary_statistics(tree, proba_sampling)
     elif vector_representation == FULL:
         encoded_tree, rescale_factor = encode_into_most_recent(tree, proba_sampling)
-
     # load model
     if vector_representation == SUMSTATS:
         loaded_model, scaler = model_scale_load_ffnn(tree_size, model)
     elif vector_representation == FULL:
         loaded_model = model_load_cnn(tree_size, model)
-
     # predict values:
     if vector_representation == SUMSTATS:
         encoded_tree = scaler.transform(encoded_tree)
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
     elif vector_representation == FULL:
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
-
     # annotate predictions:
     predictions = annotator(predictions, model)
     # if inferred paramater values: rescale back the rates
     predictions = rescaler(predictions, rescale_factor)
-
     return predictions
 
 
@@ -84,8 +106,9 @@ def main():
                                      prog='modeldeep')
 
     tree_group = parser.add_argument_group('tree-related arguments')
-    tree_group.add_argument('-t', '--tree_file', help="input tree in newick format (must be rooted, without polytomies"
-                                                      " and of size between 50 adn 500 tips).",
+    tree_group.add_argument('-t', '--tree_file',
+                            help="input tree in newick format "
+                                 "(must be rooted, without polytomies and containing at least 50 tips).",
                             type=str, required=True)
     tree_group.add_argument('-p', '--proba_sampling', help="presumed sampling probability for removed tips. Must be "
                                                            "between 0.01 and 1",

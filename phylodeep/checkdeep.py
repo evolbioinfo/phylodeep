@@ -1,6 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from scipy.stats import gaussian_kde
 
 from phylodeep import FULL, SUMSTATS, BD, BDEI, BDSS
@@ -68,13 +69,14 @@ def checkdeep(tree_file, model=BD, outputfile_png='a_priori_check.png', **kvargs
     used. Four first principal components are plotted on two plots, together with variability explained for each
     component.
     For more information on the covered parameter subspaces (by simulations under given model), we refer you to the
-    following paper: ...
-    :param tree_file: path to a file with a dated tree in newick format (must be rooted, without polytomies and of size
-    between 50 adn 500 tips).
+    following paper: : Voznica et al. 2021 doi:10.1101/2021.03.11.435006.
+
+    :param tree_file: path to a file with a dated tree in newick format
+        (must be rooted, without polytomies and containing at least 50 tips).
     :type tree_file: str
     :param model: option to choose, for a tree of size between 50 and 199 tips, you can choose either 'BD' (basic
-    birth-death model with incomplete sampling BD), 'BDEI' (BD with exposed class); for a tree of size between 200 and
-    500 tips, you can choose between 'BD', 'BDEI' and  'BDSS' (BD with superspreading).
+    birth-death model with incomplete sampling BD), 'BDEI' (BD with exposed class); for a tree of size >= 200 tips,
+    you can choose between 'BD', 'BDEI' and  'BDSS' (BD with superspreading).
     :type model: str
     :param outputfile_png: name (with path) of the output png file, showing the result of the a priori check
     :type outputfile_png: str
@@ -92,10 +94,30 @@ def checkdeep(tree_file, model=BD, outputfile_png='a_priori_check.png', **kvargs
 
     # only inference on short trees available for BDSS
     if tree_size == "SMALL" and model == "BDSS":
-        raise ValueError('Parameter inference under BDSS is available only for trees of size between 200 and 500 tips')
+        raise ValueError('Parameter inference under BDSS is available only for trees of size >= 200 tips')
 
-    # encode the trees
-    encoded_tree, rescale_factor = encode_into_summary_statistics(tree, sampling_proba=0)
+    # encode the tree
+    if tree_size == HUGE:
+        encoded_subtrees = pd.DataFrame()
+        sizes = []
+        # estimate model probabilities on subtrees
+        for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_LARGE, max_size=MIN_TREE_SIZE_HUGE - 1):
+            encoded_subtrees = encoded_subtrees.append(encode_into_summary_statistics(subtree, sampling_proba=0)[0])
+            sizes.append(len(subtree))
+        # could not find any subtree of the required size, so let's just take the top part of the tree
+        if not sizes:
+            subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
+            encoded_tree = encode_into_summary_statistics(subtree, sampling_proba=0)[0]
+        else:
+            encoded_tree = pd.DataFrame(columns=encoded_subtrees.columns)
+            encoded_subtrees['weight'] = sizes
+            encoded_subtrees['weight'] /= sum(sizes)
+            for col in encoded_tree.columns:
+                encoded_tree.loc[0, col] = (encoded_subtrees[col] * encoded_subtrees['weight']).sum()
+        tree_size = LARGE
+    else:
+        encoded_tree = encode_into_summary_statistics(tree, sampling_proba=0)[0]
+
     # removing sampling proba, that is not used here
     encoded_tree = encoded_tree.iloc[:, :-1]
 
@@ -125,8 +147,9 @@ def main():
                                      prog='checkdeep')
 
     tree_group = parser.add_argument_group('tree-related arguments')
-    tree_group.add_argument('-t', '--tree_file', help="input tree in newick format (must be rooted, without polytomies"
-                                                      " and of size between 50 adn 500 tips).",
+    tree_group.add_argument('-t', '--tree_file',
+                            help="input tree in newick format "
+                                 "(must be rooted, without polytomies and containing at least 50 tips).",
                             type=str, required=True)
 
     model_group = parser.add_argument_group('phylodynamic model arguments')
@@ -135,7 +158,7 @@ def main():
                              help="Choose one of the models for the a priori check. For trees of size,"
                                   " between 50 and 199 tips you can choose either BD (constant-rate birth-death"
                                   " with incomplete sampling), or BDEI (BD with exposed-infectious class). For"
-                                  " trees of size between 200 and 500 tips, you can choose between BD, BDEI and"
+                                  " trees of size >= 200 tips, you can choose between BD, BDEI and"
                                   " BDSS (BD with superspreading).")
 
     output_group = parser.add_argument_group('output')
