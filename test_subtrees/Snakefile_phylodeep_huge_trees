@@ -15,6 +15,7 @@ rule all:
     input:
         os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_errors.png')
 
+
 rule estimate_from_subtree:
     '''
     Extracts the oldest part of the subtree, estimates parameters on it.
