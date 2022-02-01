@@ -23,13 +23,16 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Plots errors.")
-    parser.add_argument('--estimated_CNN', type=str, help="estimated parameters")
     parser.add_argument('--estimated_FFNN', type=str, help="estimated parameters")
+    parser.add_argument('--estimated_CNN', type=str, help="estimated parameters")
+    parser.add_argument('--estimated_CNN_subtrees', type=str, help="estimated parameters")
+    parser.add_argument('--estimated_FFNN_subtrees', type=str, help="estimated parameters")
     parser.add_argument('--estimated_CNN_large', type=str, help="estimated parameters", default=None)
     parser.add_argument('--estimated_FFNN_large', type=str, help="estimated parameters", default=None)
-    parser.add_argument('--estimated_beast2', type=str, help="estimated parameters by BEAST2", default=None)
-    parser.add_argument('--real', type=str, help="real parameters")
+    parser.add_argument('--real', type=str, help="real parameters for subtrees")
+    parser.add_argument('--real_b', type=str, default=None, help="real parameters")
     parser.add_argument('--tab', type=str, help="estimate table")
+    parser.add_argument('--small', action="store_true", help="estimate table")
     parser.add_argument('--model', type=str, choices=['BD', 'BDEI', 'BDSS'], help="model")
     params = parser.parse_args()
 
@@ -42,35 +45,25 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(columns=['type'] + ps)
 
-    rdf, label = params.real, 'real'
-    rdf = pd.read_csv(rdf, header=0)
-    rdf.index = rdf.index.map(int)
-    col2col = get_col2col(rdf.columns)
-    cols = [col2col[_] for _ in ps] + [col2col['p']]
-    rdf = rdf[cols]
-    rdf.columns = ps + ['p']
-    rdf['type'] = label
-    rdf.index = rdf.index.map(lambda _: '{}.{}'.format(_, label))
-    df = df.append(rdf)
+    for (rdf, label) in zip((params.real, params.real_b if params.real_b else params.real), ('real-subtrees', 'real')):
+        rdf = pd.read_csv(rdf, header=0)
+        rdf.index = rdf.index.map(int)
+        col2col = get_col2col(rdf.columns)
+        cols = [col2col[_] for _ in ps] + [col2col['p']]
+        rdf = rdf[cols]
+        rdf.columns = ps + ['p']
+        rdf['type'] = label
+        rdf.index = rdf.index.map(lambda _: '{}.{}'.format(_, label))
+        df = df.append(rdf)
 
-    if params.estimated_beast2:
-        bdf = pd.read_csv(params.estimated_beast2, header=0)
-        bdf.index = bdf.index.map(int)
-        col2col = get_col2col(bdf.columns)
-        cols = [col2col[_] for _ in ps]
-        bdf = bdf[cols]
-        bdf.columns = ps
-        bdf.loc[pd.isna(bdf['R_naught']), 'R_naught'] = 3
-        bdf.loc[pd.isna(bdf['infectious_period']), 'infectious_period'] = 5.5
-        if 'incubation_time' in ps:
-            bdf.loc[pd.isna(bdf['incubation_time']), 'incubation_time'] = 25.1
-        bdf['type'] = 'BEAST2'
-        bdf.index = bdf.index.map(lambda _: '{}.{}'.format(_, 'BEAST2'))
-        df = df.append(bdf)
 
-    for (label, csv) in zip(('CNN', 'FFNN', 'CNN-subtrees', 'FFNN-subtrees'),
+    for (label, csv) in zip(('CNN', 'FFNN',
+                             'CNN (on {})'.format('large' if params.small else 'small'),
+                             'FFNN (on {})'.format('large' if params.small else 'small'),
+                             'CNN (subtrees)', 'FFNN (subtrees)'),
                             (params.estimated_CNN_large, params.estimated_FFNN_large,
-                             params.estimated_CNN, params.estimated_FFNN)):
+                             params.estimated_CNN, params.estimated_FFNN,
+                             params.estimated_CNN_subtrees, params.estimated_FFNN_subtrees)):
         if csv:
             dldf = pd.read_csv(csv, header=0)
             dldf.index = dldf.index.map(int)
