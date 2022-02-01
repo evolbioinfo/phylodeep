@@ -7,11 +7,15 @@ def get_col2col(columns):
         if 'sampling' in c:
             res['p'] = c
         elif 'nfecti' in c:
-            res['infectious_period'] = c
+            res['infectious period'] = c
+        elif 'ransmi' in c:
+            res['SS transmission ratio'] = c
+        elif 'ractio' in c:
+            res['SS fraction'] = c
         elif 'ncubation' in c:
-            res['incubation_time'] = c
+            res['incubation time'] = c
         elif 'R' in c:
-            res['R_naught'] = c
+            res['R0'] = c
     return res
 
 
@@ -27,13 +31,15 @@ if __name__ == "__main__":
     parser.add_argument('--real', type=str, help="real parameters for subtrees")
     parser.add_argument('--real_b', type=str, default=None, help="real parameters")
     parser.add_argument('--tab', type=str, help="estimate table")
-    parser.add_argument('--model', type=str, choices=['BD', 'BDEI'], help="model")
+    parser.add_argument('--model', type=str, choices=['BD', 'BDEI', 'BDSS'], help="model")
     params = parser.parse_args()
 
     if params.model == 'BD':
-        ps = ['R_naught', 'infectious_period']
+        ps = ['R0', 'infectious period']
+    elif params.model == 'BDEI':
+        ps = ['R0', 'infectious period', 'incubation time']
     else:
-        ps = ['R_naught', 'infectious_period', 'incubation_time']
+        ps = ['R0', 'SS transmission ratio', 'SS fraction', 'infectious period']
 
     df = pd.DataFrame(columns=['type'] + ps)
 

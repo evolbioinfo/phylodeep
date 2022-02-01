@@ -49,6 +49,7 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
 
     # read trees
     tree = read_tree_file(tree_file)
+    n_tips_total = len(tree)
 
     # check tree size
     tree_size = check_tree_size(tree)
@@ -58,6 +59,7 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
         raise ValueError('Parameter inference under {} is available only for trees of size above {}'
                          .format(BDSS, MIN_TREE_SIZE_LARGE))
 
+    n_tips_used = 0
     if tree_size == HUGE:
         predictions = pd.DataFrame()
         sizes = []
@@ -71,6 +73,8 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
         # could not find any subtree of the required size, so let's just take the top part of the tree
         if not sizes:
             subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
+            n_tips_used = len(subtree)
+            print('Using {} out of {} tips for the parameter inference.'.format(n_tips_used, n_tips_total))
             return _paramdeep_tree(subtree, LARGE, model, proba_sampling, vector_representation, ci_computation)
         df = pd.DataFrame(columns=predictions.columns)
         indices = predictions.index.unique()
@@ -80,6 +84,8 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
             subpredictions['weight'] /= sum(sizes)
             for col in df.columns:
                 df.loc[i, col] = (subpredictions[col] * subpredictions['weight']).sum()
+        n_tips_used = sum(sizes)
+        print('Using {} out of {} tips for the parameter inference.'.format(n_tips_used, n_tips_total))
         return df
 
     return _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representation, ci_computation)

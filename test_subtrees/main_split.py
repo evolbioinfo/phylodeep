@@ -1,12 +1,11 @@
 import gzip
-import os
 
 import pandas as pd
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Extracts subtrees of given size.")
+    parser = argparse.ArgumentParser(description="Splits a forest into trees.")
     parser.add_argument('--in_nwk', required=True, type=str, help="forest file")
     parser.add_argument('--in_log', required=True, type=str, help="forest parameter file")
     parser.add_argument('--out_nwk', nargs='+', type=str, help="tree files")
