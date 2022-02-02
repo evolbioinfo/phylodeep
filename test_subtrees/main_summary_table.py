@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument('--estimated_FFNN_large', type=str, help="estimated parameters", default=None)
     parser.add_argument('--estimated_beast2', type=str, help="estimated parameters by BEAST2", default=None)
     parser.add_argument('--real', type=str, help="real parameters")
+    parser.add_argument('--real_b', type=str, help="real parameters")
     parser.add_argument('--tab', type=str, help="estimate table")
     parser.add_argument('--model', type=str, choices=['BD', 'BDEI', 'BDSS'], help="model")
     params = parser.parse_args()
@@ -42,16 +43,16 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(columns=['type'] + ps)
 
-    rdf, label = params.real, 'real'
-    rdf = pd.read_csv(rdf, header=0)
-    rdf.index = rdf.index.map(int)
-    col2col = get_col2col(rdf.columns)
-    cols = [col2col[_] for _ in ps] + [col2col['p']]
-    rdf = rdf[cols]
-    rdf.columns = ps + ['p']
-    rdf['type'] = label
-    rdf.index = rdf.index.map(lambda _: '{}.{}'.format(_, label))
-    df = df.append(rdf)
+    for (rdf, label) in zip((params.real, params.real_b if params.real_b else params.real), ('real', 'real-subtrees')):
+        rdf = pd.read_csv(rdf, header=0)
+        rdf.index = rdf.index.map(int)
+        col2col = get_col2col(rdf.columns)
+        cols = [col2col[_] for _ in ps] + [col2col['p']]
+        rdf = rdf[cols]
+        rdf.columns = ps + ['p']
+        rdf['type'] = label
+        rdf.index = rdf.index.map(lambda _: '{}.{}'.format(_, label))
+        df = df.append(rdf)
 
     if params.estimated_beast2:
         bdf = pd.read_csv(params.estimated_beast2, header=0)

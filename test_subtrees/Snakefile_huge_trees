@@ -243,8 +243,8 @@ rule combine_estimates:
     input:
         est_CNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'CNN_CBLV.csv.gz'),
         est_FFNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS.csv.gz'),
-        real = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
-        real_b = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
+        real_b = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
+        real = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
         est_CNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
         est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
     output:
