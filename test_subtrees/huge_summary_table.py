@@ -69,7 +69,7 @@ if __name__ == "__main__":
         bdf.index = bdf.index.map(lambda _: '{}.{}'.format(_, 'BEAST2'))
         df = df.append(bdf)
 
-    for (label, csv) in zip(('CNN', 'FFNN', 'CNN-subtrees', 'FFNN-subtrees'),
+    for (label, csv) in zip(('CNN (large)', 'FFNN (large)', 'CNN (huge, subtrees)', 'FFNN (huge, subtrees)'),
                             (params.estimated_CNN_large, params.estimated_FFNN_large,
                              params.estimated_CNN, params.estimated_FFNN)):
         if csv:

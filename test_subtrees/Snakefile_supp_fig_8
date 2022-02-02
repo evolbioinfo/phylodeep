@@ -8,6 +8,7 @@ Create small trees by extracting clusters of appropriate size
 # snakemake --snakefile Snakefile_supp_fig_8 --keep-going --cores 7
 
 localrules: all
+ruleorder: combine_estimates_small_on_large_full > combine_estimates_small_on_large_partial
 
 sim_folder = os.path.abspath(os.path.join('..', 'data_publication'))
 
@@ -72,7 +73,7 @@ rule combine_estimates_large_on_small:
         """
 
 
-rule combine_estimates_small_on_large:
+rule combine_estimates_small_on_large_full:
     '''
     Combines estimates.
     '''
@@ -93,6 +94,30 @@ rule combine_estimates_small_on_large:
         """
         python3 summary_table.py --real {input.real} \
         --estimated_FFNN {input.est_FFNN} --estimated_CNN {input.est_CNN} \
+        --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
+        --tab {output.tab} --model {wildcards.model} --small
+        """
+
+rule combine_estimates_small_on_large_partial:
+    '''
+    Combines estimates.
+    '''
+    input:
+        est_FFNN = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_small_on_large', 'FFNN_SS.csv.gz'),
+        real = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_small_on_large', 'TARGET.csv.gz'),
+        est_CNN_large = os.path.join(sim_folder, 'Supp_Fig_2', 'predicted_values', '{model}_small', 'CNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, 'Supp_Fig_2', 'predicted_values', '{model}_small', 'FFNN_SS.csv.gz'),
+    output:
+        tab = os.path.join(sim_folder, 'Supp_Fig_8', 'predicted_values', '{model}_small_on_large_estimates.tab'),
+    params:
+        mem = 2000,
+        name = 'estimates',
+        qos = 'fast',
+    threads: 1
+    shell:
+        """
+        python3 summary_table.py --real {input.real} \
+        --estimated_FFNN {input.est_FFNN} \
         --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
         --tab {output.tab} --model {wildcards.model} --small
         """
