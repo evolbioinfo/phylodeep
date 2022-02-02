@@ -18,123 +18,123 @@ rule all:
     input:
         nwk = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk.gz'), model=models),
         errors = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_errors.png'), model=models),
-#        logs = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}_log.csv.gz'), model=models, name=['CNN_CBLV', 'FFNN_SS'])
+        logs = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}_log.csv.gz'), model=models, name=['CNN_CBLV', 'FFNN_SS'])
 
 
-#rule split:
+rule split:
+    '''
+    Splits a forest into trees.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
+    output:
+        nwk = temp(expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{{model}}_huge_100.{i}.nwk'), i=range(REPETITIONS))),
+        log = temp(expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{{model}}_huge', 'TARGET.{i}.csv'), i=range(REPETITIONS)))
+    params:
+        mem = 2000,
+        name = 'split',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 main_split.py --in_log {input.log} --in_nwk {input.nwk} --out_nwk {output.nwk} --out_log {output.log}
+        """
+
+
+#rule simulate_bd:
 #    '''
-#    Splits a forest into trees.
+#    Simulates a tree for given BD parameters.
 #    '''
 #    input:
-#        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk.gz'),
-#        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
+#        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BD_large', 'TARGET.csv.gz'),
 #    output:
-#        nwk = temp(expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{{model}}_huge_100.{i}.nwk'), i=range(REPETITIONS))),
-#        log = temp(expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{{model}}_huge', 'TARGET.{i}.csv'), i=range(REPETITIONS)))
+#        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BD_huge_100.{i}.nwk')),
+#        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BD_huge', 'TARGET.{i}.csv')),
 #    params:
 #        mem = 2000,
-#        name = 'split',
+#        name = 'tree_large_{i}',
 #        qos = 'fast'
 #    threads: 1
 #    shell:
 #        """
-#        python3 main_split.py --in_log {input.log} --in_nwk {input.nwk} --out_nwk {output.nwk} --out_log {output.log}
+#        line=`gzip -dc {input.log} | head -n $(({wildcards.i} + 2)) | tail -n 1 `
+#
+#        R=`echo $line | cut -d, -f1`
+#        ip=`echo $line | cut -d, -f2`
+#        p=`echo $line | cut -d, -f4`
+#        psi=`bc -l <<< "1/$ip"`
+#        la=`bc -l <<< "$R/$ip"`
+#
+#        generate_bd --min_tips 5000 --max_tips 10000 --la $la --psi $psi --p $p \
+#        --nwk {output.nwk} --log {output.log}
 #        """
-
-
-rule simulate_bd:
-    '''
-    Simulates a tree for given BD parameters.
-    '''
-    input:
-        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BD_large', 'TARGET.csv.gz'),
-    output:
-        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BD_huge_100.{i}.nwk')),
-        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BD_huge', 'TARGET.{i}.csv')),
-    params:
-        mem = 2000,
-        name = 'tree_large_{i}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        line=`gzip -dc {input.log} | head -n $(({wildcards.i} + 2)) | tail -n 1 `
-
-        R=`echo $line | cut -d, -f1`
-        ip=`echo $line | cut -d, -f2`
-        p=`echo $line | cut -d, -f4`
-        psi=`bc -l <<< "1/$ip"`
-        la=`bc -l <<< "$R/$ip"`
-
-        generate_bd --min_tips 5000 --max_tips 10000 --la $la --psi $psi --p $p \
-        --nwk {output.nwk} --log {output.log}
-        """
-
-rule simulate_bdei:
-    '''
-    Simulates a tree for given BDEI parameters.
-    '''
-    input:
-        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDEI_large', 'TARGET.csv.gz'),
-    output:
-        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_huge_100.{i}.nwk')),
-        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_huge', 'TARGET.{i}.csv')),
-    params:
-        mem = 2000,
-        name = 'tree_large_{i}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        line=`gzip -dc {input.log} | head -n $(({wildcards.i} + 2)) | tail -n 1 `
-
-        R=`echo $line | cut -d, -f1`
-        ip=`echo $line | cut -d, -f2`
-        it=`echo $line | cut -d, -f3`
-        p=`echo $line | cut -d, -f5`
-        mu=`bc -l <<< "1/$ip"`
-        psi=`bc -l <<< "1/$it"`
-        la=`bc -l <<< "$R/$it"`
-
-        generate_bdei --min_tips 5000 --max_tips 10000 --mu $mu --la $la --psi $psi --p $p \
-        --nwk {output.nwk} --log {output.log}
-        """
-
-rule simulate_bdss:
-    '''
-    Simulates a tree for given BD parameters.
-    '''
-    input:
-        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDSS_large', 'TARGET.csv.gz'),
-    output:
-        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDSS_huge_100.{i}.nwk')),
-        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDSS_huge', 'TARGET.{i}.csv')),
-    params:
-        mem = 2000,
-        name = 'tree_large_{i}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        line=`gzip -dc {input.log} | head -n $(({wildcards.i} + 2)) | tail -n 1 `
-
-        R=`echo $line | cut -d, -f1`
-        x=`echo $line | cut -d, -f2`
-        f=`echo $line | cut -d, -f3`
-        ip=`echo $line | cut -d, -f4`
-        p=`echo $line | cut -d, -f6`
-        psi=`bc -l <<< "1/$ip"`
-        fx=`bc -l <<< $f*$x`
-        la=`bc -l <<< "$R/$ip"`
-        bss=`bc -l <<< "$la*$fx/($fx+1-$f)"`
-        bns=`bc -l <<< "$bss/$x"`
-        bnn=`bc -l <<< "$la-$bss"`
-        bsn=`bc -l <<< "$bnn*$x"`
-
-        generate_bdss --min_tips 5000 --max_tips 10000 --la_ss $bss --la_sn $bsn --la_ns $bns --la_nn $bnn \
-        --psi $psi --p $p \
-        --nwk {output.nwk} --log {output.log}
-        """
+#
+#rule simulate_bdei:
+#    '''
+#    Simulates a tree for given BDEI parameters.
+#    '''
+#    input:
+#        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDEI_large', 'TARGET.csv.gz'),
+#    output:
+#        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDEI_huge_100.{i}.nwk')),
+#        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDEI_huge', 'TARGET.{i}.csv')),
+#    params:
+#        mem = 2000,
+#        name = 'tree_large_{i}',
+#        qos = 'fast'
+#    threads: 1
+#    shell:
+#        """
+#        line=`gzip -dc {input.log} | head -n $(({wildcards.i} + 2)) | tail -n 1 `
+#
+#        R=`echo $line | cut -d, -f1`
+#        ip=`echo $line | cut -d, -f2`
+#        it=`echo $line | cut -d, -f3`
+#        p=`echo $line | cut -d, -f5`
+#        mu=`bc -l <<< "1/$ip"`
+#        psi=`bc -l <<< "1/$it"`
+#        la=`bc -l <<< "$R/$it"`
+#
+#        generate_bdei --min_tips 5000 --max_tips 10000 --mu $mu --la $la --psi $psi --p $p \
+#        --nwk {output.nwk} --log {output.log}
+#        """
+#
+#rule simulate_bdss:
+#    '''
+#    Simulates a tree for given BD parameters.
+#    '''
+#    input:
+#        log = os.path.join(sim_folder, 'Fig_3', 'predicted_values', 'BDSS_large', 'TARGET.csv.gz'),
+#    output:
+#        nwk = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', 'BDSS_huge_100.{i}.nwk')),
+#        log = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', 'BDSS_huge', 'TARGET.{i}.csv')),
+#    params:
+#        mem = 2000,
+#        name = 'tree_large_{i}',
+#        qos = 'fast'
+#    threads: 1
+#    shell:
+#        """
+#        line=`gzip -dc {input.log} | head -n $(({wildcards.i} + 2)) | tail -n 1 `
+#
+#        R=`echo $line | cut -d, -f1`
+#        x=`echo $line | cut -d, -f2`
+#        f=`echo $line | cut -d, -f3`
+#        ip=`echo $line | cut -d, -f4`
+#        p=`echo $line | cut -d, -f6`
+#        psi=`bc -l <<< "1/$ip"`
+#        fx=`bc -l <<< $f*$x`
+#        la=`bc -l <<< "$R/$ip"`
+#        bss=`bc -l <<< "$la*$fx/($fx+1-$f)"`
+#        bns=`bc -l <<< "$bss/$x"`
+#        bnn=`bc -l <<< "$la-$bss"`
+#        bsn=`bc -l <<< "$bnn*$x"`
+#
+#        generate_bdss --min_tips 5000 --max_tips 10000 --la_ss $bss --la_sn $bsn --la_ns $bns --la_nn $bnn \
+#        --psi $psi --p $p \
+#        --nwk {output.nwk} --log {output.log}
+#        """
 
 rule combine_nwks:
     '''
@@ -246,7 +246,7 @@ rule combine_estimates:
         real_b = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
         real = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
         est_CNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
-        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'FFNN_CBLV.csv.gz'),
     output:
         tab = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_estimates.tab'),
     params:

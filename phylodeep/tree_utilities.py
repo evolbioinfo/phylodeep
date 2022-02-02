@@ -1,3 +1,4 @@
+import numpy as np
 from ete3 import Tree
 
 HUGE = 'HUGE'
@@ -63,6 +64,31 @@ def check_tree_size(tre):
     return HUGE
 
 
+def _merge(l1, l2, key, max_size=np.inf):
+    """
+    Merges two sorted arrays
+    :param l1: array 1
+    :param l2: array 2
+    :return: merged array
+    """
+    res = []
+    i, j = 0, 0
+    while len(res) < max_size and (i < len(l2) or j < len(l2)):
+        if i == len(l1):
+            res.extend(l2[j:])
+            break
+        if j == len(l2):
+            res.extend(l1[i:])
+            break
+        if key(l1[i]) <= key(l2[j]):
+            res.append(l1[i])
+            i += 1
+        else:
+            res.append(l2[j])
+            j += 1
+    return res
+
+
 def extract_clusters(tre, min_size, max_size):
     """
     Cuts the given tree into subtrees within a given size (s) range: min_size <= s <= max_size.
@@ -73,14 +99,77 @@ def extract_clusters(tre, min_size, max_size):
     :param tre: ete3.Tree
     :return: a generator of extracted subtrees
     """
+    n2date = {}
+    for n in tre.traverse('preorder'):
+        n2date[n] = (0 if n.is_root() else n2date[n.up]) + n.dist
+
+    for n in tre.traverse('postorder'):
+        n_size = len(n)
+
+        n.add_feature('sorted-tips',
+                      [n] if n.is_leaf()
+                      else _merge(*(getattr(_, 'sorted-tips') for _ in n.children), key=lambda _: n2date[_],
+                                  max_size=max_size))
+        n.add_feature('sorted-nodes',
+                      [] if n.is_leaf()
+                      else _merge(*(getattr(_, 'sorted-nodes') for _ in n.children), key=lambda _: n2date[_]))
+
+        if n_size < min_size:
+            n.add_feature('taken', 0)
+        elif n_size <= max_size:
+            n.add_feature('taken', n_size)
+            n.add_feature('how', 'top')
+        else:
+            taken = sum(getattr(_, 'taken') for _ in n.children)
+            how = 'recurse'
+            tips = getattr(n, 'sorted-tips')
+            for i in range(min_size, min(n_size, max_size) + 1):
+                date = n2date[tips[i - 1]]
+                size = i
+                todo = list(n.children)
+                while todo:
+                    m = todo.pop()
+                    if n2date[m] < date:
+                        todo.extend(m.children)
+                    else:
+                        size += getattr(m, 'taken')
+                if size > taken:
+                    taken = size
+                    how = 'mixed_{}'.format(i) if size > i else 'top'
+            n.add_feature('taken', taken)
+            n.add_feature('how', how)
+
     todo = [tre]
     while todo:
         n = todo.pop()
-        if len(n) > max_size:
+        if len(n) < min_size:
+            continue
+        how = getattr(n, 'how')
+        if 'recurse' == how:
             todo.extend(n.children)
-        elif len(n) >= min_size:
-            n.detach()
-            yield n
+            continue
+        if 'top' == how:
+            if len(n) <= max_size:
+                yield n.detach()
+                continue
+            # tips should contain exactly max_size oldest tips
+            tips = getattr(n, 'sorted-tips')
+            yield remove_certain_leaves(tre, lambda _: _ not in tips)
+            continue
+        i = int(how[6:])
+        date = getattr(n, 'sorted-tips')[i - 1]
+        child_todo = list(n.children)
+        while child_todo:
+            m = child_todo.pop()
+            if n2date[m] < date:
+                child_todo.extend(m.children)
+            else:
+                parent = m.up
+                todo.extend(m.detach())
+                for c in parent.children:
+                    parent.up.add_child(c, dist=c.dist + parent.dist)
+                parent.up.remove_child(parent)
+        yield n.detach()
 
 
 def remove_certain_leaves(tr, to_remove=lambda node: False):
