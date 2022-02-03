@@ -59,7 +59,6 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
         raise ValueError('Parameter inference under {} is available only for trees of size above {}'
                          .format(BDSS, MIN_TREE_SIZE_LARGE))
 
-    n_tips_used = 0
     if tree_size == HUGE:
         predictions = pd.DataFrame()
         sizes = []
@@ -70,12 +69,6 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
             predictions = predictions.append(
                 _paramdeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation, ci_computation))
             sizes.append(len(subtree))
-        # could not find any subtree of the required size, so let's just take the top part of the tree
-        if not sizes:
-            subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
-            n_tips_used = len(subtree)
-            print('Using {} out of {} tips for the parameter inference.'.format(n_tips_used, n_tips_total))
-            return _paramdeep_tree(subtree, LARGE, model, proba_sampling, vector_representation, ci_computation)
         df = pd.DataFrame(columns=predictions.columns)
         indices = predictions.index.unique()
         for i in indices:
@@ -84,8 +77,10 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
             subpredictions['weight'] /= sum(sizes)
             for col in df.columns:
                 df.loc[i, col] = (subpredictions[col] * subpredictions['weight']).sum()
-        n_tips_used = sum(sizes)
-        print('Using {} out of {} tips for the parameter inference.'.format(n_tips_used, n_tips_total))
+        n_branches_used = sum(2 * _ - 1 for _ in sizes)
+        n_branches = 2 * n_tips_total - 1
+        print('Using {} out of {} branches ({:.1f}%) for the parameter inference.'
+              .format(n_branches_used, n_branches, 100 * n_branches_used / n_branches))
         return df
 
     return _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representation, ci_computation)

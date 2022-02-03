@@ -73,12 +73,12 @@ def _merge(l1, l2, key, max_size=np.inf):
     """
     res = []
     i, j = 0, 0
-    while len(res) < max_size and (i < len(l2) or j < len(l2)):
+    while len(res) < max_size and (i < len(l1) or j < len(l2)):
         if i == len(l1):
-            res.extend(l2[j:])
+            res.extend(l2[j:min(len(l2), j + max_size - len(res))])
             break
         if j == len(l2):
-            res.extend(l1[i:])
+            res.extend(l1[i: min(len(l1), i + max_size - len(res))])
             break
         if key(l1[i]) <= key(l2[j]):
             res.append(l1[i])
@@ -99,20 +99,16 @@ def extract_clusters(tre, min_size, max_size):
     :param tre: ete3.Tree
     :return: a generator of extracted subtrees
     """
-    n2date = {}
-    for n in tre.traverse('preorder'):
-        n2date[n] = (0 if n.is_root() else n2date[n.up]) + n.dist
+    for i, n in enumerate(tre.traverse('levelorder')):
+        n.add_feature('date', (((0 if n.is_root() else getattr(n.up, 'date')[0]) + n.dist), i))
 
     for n in tre.traverse('postorder'):
         n_size = len(n)
 
         n.add_feature('sorted-tips',
                       [n] if n.is_leaf()
-                      else _merge(*(getattr(_, 'sorted-tips') for _ in n.children), key=lambda _: n2date[_],
+                      else _merge(*(getattr(_, 'sorted-tips') for _ in n.children), key=lambda _: getattr(_, 'date'),
                                   max_size=max_size))
-        n.add_feature('sorted-nodes',
-                      [] if n.is_leaf()
-                      else _merge(*(getattr(_, 'sorted-nodes') for _ in n.children), key=lambda _: n2date[_]))
 
         if n_size < min_size:
             n.add_feature('taken', 0)
@@ -124,12 +120,12 @@ def extract_clusters(tre, min_size, max_size):
             how = 'recurse'
             tips = getattr(n, 'sorted-tips')
             for i in range(min_size, min(n_size, max_size) + 1):
-                date = n2date[tips[i - 1]]
+                date = getattr(tips[i - 1], 'date')
                 size = i
                 todo = list(n.children)
                 while todo:
                     m = todo.pop()
-                    if n2date[m] < date:
+                    if getattr(getattr(m, 'sorted-tips')[0], 'date') <= date:
                         todo.extend(m.children)
                     else:
                         size += getattr(m, 'taken')
@@ -149,26 +145,28 @@ def extract_clusters(tre, min_size, max_size):
             todo.extend(n.children)
             continue
         if 'top' == how:
+            n.detach()
             if len(n) <= max_size:
-                yield n.detach()
+                yield n
                 continue
             # tips should contain exactly max_size oldest tips
             tips = getattr(n, 'sorted-tips')
-            yield remove_certain_leaves(tre, lambda _: _ not in tips)
+            yield remove_certain_leaves(n, lambda _: _ not in tips)
             continue
         i = int(how[6:])
-        date = getattr(n, 'sorted-tips')[i - 1]
+        date = getattr(getattr(n, 'sorted-tips')[i - 1], 'date')
         child_todo = list(n.children)
         while child_todo:
             m = child_todo.pop()
-            if n2date[m] < date:
+            if getattr(getattr(m, 'sorted-tips')[0], 'date') <= date:
                 child_todo.extend(m.children)
             else:
                 parent = m.up
-                todo.extend(m.detach())
-                for c in parent.children:
-                    parent.up.add_child(c, dist=c.dist + parent.dist)
-                parent.up.remove_child(parent)
+                todo.append(m.detach())
+                if parent.up:
+                    for c in parent.children:
+                        parent.up.add_child(c, dist=c.dist + parent.dist)
+                    parent.up.remove_child(parent)
         yield n.detach()
 
 
@@ -198,21 +196,6 @@ def remove_certain_leaves(tr, to_remove=lambda node: False):
                 grandparent.remove_child(parent)
                 grandparent.add_child(brother)
     return tr
-
-
-def extract_root_cluster(tre, size):
-    """
-    Prunes the tree to include a given number (size) of oldest tips.
-
-    :param size: number of tips for the subtree
-    :param tre: ete3.Tree
-    :return: the subtree
-    """
-    n2T = {}
-    for n in tre.traverse('preorder'):
-        n2T[n] = (0 if n.is_root() else n2T[n.up]) + n.dist
-    tips = sorted([_ for _ in tre], key=lambda _: n2T[_])
-    return remove_certain_leaves(tre, lambda _: _ not in tips[:size])
 
 
 def annotator(predict, mod):

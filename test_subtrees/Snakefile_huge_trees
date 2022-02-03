@@ -11,7 +11,7 @@ localrules: all
 
 sim_folder = os.path.abspath(os.path.join('..', 'data_publication'))
 models = ['BD', 'BDSS', 'BDEI']
-#models = ['BD']
+models = ['BD']
 REPETITIONS=100
 
 rule all:
@@ -135,32 +135,32 @@ rule split:
 #        --psi $psi --p $p \
 #        --nwk {output.nwk} --log {output.log}
 #        """
-
-rule combine_nwks:
-    '''
-    Combines nwk trees.
-    '''
-    input:
-        nwk = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{{model}}_huge_100.{i}.nwk'), i=range(REPETITIONS)),
-    output:
-        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk.gz'),
-    params:
-        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk'),
-        nwk_pattern = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.$i.nwk'),
-        mem = 2000,
-        name = 'combine_{model}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        rm -rf {output.nwk} {params.nwk}
-        for i in {{0..99}}
-        do
-            cat {params.nwk_pattern} >> {params.nwk}
-        done
-        gzip {params.nwk}
-        """
-
+#
+#rule combine_nwks:
+#    '''
+#    Combines nwk trees.
+#    '''
+#    input:
+#        nwk = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{{model}}_huge_100.{i}.nwk'), i=range(REPETITIONS)),
+#    output:
+#        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk.gz'),
+#    params:
+#        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.nwk'),
+#        nwk_pattern = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.$i.nwk'),
+#        mem = 2000,
+#        name = 'combine_{model}',
+#        qos = 'fast'
+#    threads: 1
+#    shell:
+#        """
+#        rm -rf {output.nwk} {params.nwk}
+#        for i in {{0..99}}
+#        do
+#            cat {params.nwk_pattern} >> {params.nwk}
+#        done
+#        gzip {params.nwk}
+#        """
+#
 rule combine_logs:
     '''
     Combines logs.
@@ -210,6 +210,7 @@ rule estimate_cnn:
         """
         pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
         p=`tail -n 1 {input.log} | cut -d, -f$pcol `
+        echo "paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN} > {output.log_CNN}"
         paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN} > {output.log_CNN}
         """
 
@@ -235,7 +236,6 @@ rule estimate_ffnn:
         paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN} > {output.log_FFNN}
         """
 
-
 rule combine_estimates:
     '''
     Combine estimates.
@@ -246,7 +246,7 @@ rule combine_estimates:
         real_b = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
         real = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
         est_CNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
-        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'FFNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'FFNN_SS.csv.gz'),
     output:
         tab = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_estimates.tab'),
     params:

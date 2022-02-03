@@ -57,10 +57,6 @@ def modeldeep(tree_file, proba_sampling, vector_representation=FULL, **kvargs):
             predictions = predictions.append(
                 _modeldeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation))
             sizes.append(len(subtree))
-        # could not find any subtree of the required size, so let's just take the top part of the tree
-        if not sizes:
-            subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
-            return _modeldeep_tree(subtree, LARGE, model, proba_sampling, vector_representation)
         df = pd.DataFrame(columns=predictions.columns)
         predictions['weight'] = sizes
         predictions['weight'] /= sum(sizes)

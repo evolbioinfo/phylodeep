@@ -104,16 +104,11 @@ def checkdeep(tree_file, model=BD, outputfile_png='a_priori_check.png', **kvargs
         for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_LARGE, max_size=MIN_TREE_SIZE_HUGE - 1):
             encoded_subtrees = encoded_subtrees.append(encode_into_summary_statistics(subtree, sampling_proba=0)[0])
             sizes.append(len(subtree))
-        # could not find any subtree of the required size, so let's just take the top part of the tree
-        if not sizes:
-            subtree = extract_root_cluster(tree, MIN_TREE_SIZE_HUGE - 1)
-            encoded_tree = encode_into_summary_statistics(subtree, sampling_proba=0)[0]
-        else:
-            encoded_tree = pd.DataFrame(columns=encoded_subtrees.columns)
-            encoded_subtrees['weight'] = sizes
-            encoded_subtrees['weight'] /= sum(sizes)
-            for col in encoded_tree.columns:
-                encoded_tree.loc[0, col] = (encoded_subtrees[col] * encoded_subtrees['weight']).sum()
+        encoded_tree = pd.DataFrame(columns=encoded_subtrees.columns)
+        encoded_subtrees['weight'] = sizes
+        encoded_subtrees['weight'] /= sum(sizes)
+        for col in encoded_tree.columns:
+            encoded_tree.loc[0, col] = (encoded_subtrees[col] * encoded_subtrees['weight']).sum()
         tree_size = LARGE
     else:
         encoded_tree = encode_into_summary_statistics(tree, sampling_proba=0)[0]

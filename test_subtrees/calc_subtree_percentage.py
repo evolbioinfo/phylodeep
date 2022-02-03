@@ -3,7 +3,6 @@ import glob
 import re
 
 import numpy as np
-import pandas as pd
 
 files = glob.glob('/home/azhukova/projects/phylodeep/data_publication/Supp_Fig_10/predicted_values/*_huge/FFNN_SS_log.csv.gz')
 
@@ -15,11 +14,11 @@ if __name__ == "__main__":
     params = parser.parse_args()
 
     for f in files:
-        print(re.findall(r'(\w+)_huge', f)[0])
+        model = re.findall(r'(\w+)_huge', f)[0]
         percentages = []
         with gzip.open(f, 'rt') as f:
             for line in f:
-                n_sub, n_all = (int(_) for _ in re.findall(r'\d+', line))
-                percentages.append(100 * n_sub / n_all)
+                n_sub, n_all, _, _ = (_ for _ in re.findall(r'\d+', line))
+                percentages.append(100.0 * int(n_sub) / int(n_all))
         percentages = np.array(percentages)
-        print(percentages.mean(), percentages.min(), '-', percentages.max())
+        print('{}: {:.2f} ({:.2f}-{:.2f})'.format(model, percentages.mean(), percentages.min(), percentages.max()))
