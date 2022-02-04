@@ -17,18 +17,15 @@ if __name__ == "__main__":
     df = pd.read_csv(params.estimates, sep='\t', index_col=0)
 
     real_df = df.loc[df['type'] == 'real', :]
-    real_df_subtree = df.loc[df['type'] == 'real-subtrees', :]
-    df = df.loc[(df['type'] != 'real') & (df['type'] != 'real-subtrees'), :]
-    types = sorted(df['type'].unique(), key=lambda _: (_[0] != 'B', len(_)))
+    df = df.loc[df['type'] != 'real', :]
+    types = sorted(df['type'].unique(),
+                   key=lambda _: (0 if '(large)' in _ else 1, 0 if 'subtree' in _ else 1, 0 if 'FFNN' in _ else 1))
     pars = [c for c in df.columns if c not in ['type', 'p']]
 
     for type in types:
         mask = df['type'] == type
         for par in pars:
-            if 'subtree' in type:
-                df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df_subtree[par]) / real_df_subtree[par]
-            else:
-                df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df[par]) / real_df[par]
+            df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df[par]) / real_df[par]
 
     plt.clf()
     n_types = len(types)
@@ -53,7 +50,8 @@ if __name__ == "__main__":
 
     ERROR_COL = 'relative error'
     plot_df = pd.DataFrame(data=data, columns=['parameter', ERROR_COL, 'config'])
-    palette = sns.color_palette("colorblind")
+    # CNN-large, FFNN-subtrees, CNN-subtrees, FFNN-huge-on-large
+    palette = [sns.color_palette("colorblind")[7]] + sns.color_palette("colorblind")[1:]
     sns.swarmplot(x="parameter", y=ERROR_COL, palette=palette, data=plot_df, alpha=.8, hue="config", ax=ax, dodge=True)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -73,7 +71,7 @@ if __name__ == "__main__":
         return HPacker(children=boxes, align="center", pad=0, sep=12)
     xbox = HPacker(children=[get_xbox(par) for par in pars], align="center", pad=0, sep=50 if len(pars) <= 3 else 65)
     anchored_xbox = AnchoredOffsetbox(loc=3, child=xbox, pad=0, frameon=False,
-                                      bbox_to_anchor=(0.1 if len(pars) == 2 else 0.07 if len(pars) == 3 else 0.05,
+                                      bbox_to_anchor=(0.08 if len(pars) == 2 else 0.06 if len(pars) == 3 else 0.05,
                                                       -0.05),
                                       bbox_transform=ax.transAxes, borderpad=0.)
     ax.set_xlabel('')

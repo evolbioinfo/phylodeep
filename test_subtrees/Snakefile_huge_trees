@@ -11,7 +11,7 @@ localrules: all
 
 sim_folder = os.path.abspath(os.path.join('..', 'data_publication'))
 models = ['BD', 'BDSS', 'BDEI']
-models = ['BD']
+#models = ['BD']
 REPETITIONS=100
 
 rule all:
@@ -161,35 +161,35 @@ rule split:
 #        gzip {params.nwk}
 #        """
 #
-rule combine_logs:
-    '''
-    Combines logs.
-    '''
-    input:
-        log = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{{model}}_huge', '{{name}}.{i}.csv'), i=range(REPETITIONS))
-    output:
-        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv.gz'),
-    params:
-        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv'),
-        log_pattern = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.$i.csv'),
-        mem = 2000,
-        name = 'combine_{model}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        rm -rf {output.log} {params.log}
-        for i in {{0..99}}
-        do
-            if [ $i -eq 0 ]
-            then
-                cat {params.log_pattern} > {params.log}
-            else
-                tail -n 1 {params.log_pattern} >> {params.log}
-            fi
-        done
-        gzip {params.log}
-        """
+#rule combine_logs:
+#    '''
+#    Combines logs.
+#    '''
+#    input:
+#        log = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{{model}}_huge', '{{name}}.{i}.csv'), i=range(REPETITIONS))
+#    output:
+#        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv.gz'),
+#    params:
+#        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv'),
+#        log_pattern = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.$i.csv'),
+#        mem = 2000,
+#        name = 'combine_{model}',
+#        qos = 'fast'
+#    threads: 1
+#    shell:
+#        """
+#        rm -rf {output.log} {params.log}
+#        for i in {{0..99}}
+#        do
+#            if [ $i -eq 0 ]
+#            then
+#                cat {params.log_pattern} > {params.log}
+#            else
+#                tail -n 1 {params.log_pattern} >> {params.log}
+#            fi
+#        done
+#        gzip {params.log}
+#        """
 
 rule estimate_cnn:
     '''
@@ -243,10 +243,9 @@ rule combine_estimates:
     input:
         est_CNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'CNN_CBLV.csv.gz'),
         est_FFNN = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS.csv.gz'),
-        real_b = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
+        est_FFNN_on_large = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS_on_large.csv.gz'),
         real = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
         est_CNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
-        est_FFNN_large = os.path.join(sim_folder, 'Fig_3', 'predicted_values', '{model}_large', 'FFNN_SS.csv.gz'),
     output:
         tab = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_estimates.tab'),
     params:
@@ -256,9 +255,10 @@ rule combine_estimates:
     threads: 1
     shell:
         """
-        python3 huge_summary_table.py --real {input.real} --real_b {input.real_b} \
+        python3 huge_summary_table.py --real {input.real} \
         --estimated_CNN {input.est_CNN} --estimated_FFNN {input.est_FFNN}  \
-        --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
+        --estimated_FFNN_on_large {input.est_FFNN_on_large}  \
+        --estimated_CNN_large {input.est_CNN_large} \
         --tab {output.tab} --model {wildcards.model}
         """
 
