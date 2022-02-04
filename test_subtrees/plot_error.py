@@ -20,7 +20,8 @@ if __name__ == "__main__":
     real_df = df.loc[df['type'] == 'real', :]
     real_df_subtree = df.loc[df['type'] == 'real-subtrees', :]
     df = df.loc[(df['type'] != 'real') & (df['type'] != 'real-subtrees'), :]
-    types = sorted(df['type'].unique(), key=lambda _: tuple(reversed(list((_ if _[-1] == ')' else (_ + ' ')).split(' ')))))
+    types = sorted(df['type'].unique(),
+                   key=lambda _: (0 if len(_) < 5 else 1, 0 if 'subtrees' in _ else 1, 0 if 'FFNN' in _ else 1))
     pars = [c for c in df.columns if c not in ['type', 'p']]
 
     for type in types:
@@ -55,6 +56,8 @@ if __name__ == "__main__":
     ERROR_COL = 'relative error'
     plot_df = pd.DataFrame(data=data, columns=['parameter', ERROR_COL, 'config'])
     palette = sns.color_palette("colorblind")
+    # FFNN, CNN, [FFNN-subtrees, CNN-subtrees], FFNN-on-other, CNN-on-other
+    palette = sns.color_palette("colorblind")[1:] if len(types) == 5 else (sns.color_palette("colorblind")[1:3] + sns.color_palette("colorblind")[5:])
     sns.swarmplot(x="parameter", y=ERROR_COL, palette=palette, data=plot_df, alpha=.8, hue="config", ax=ax, dodge=True)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
