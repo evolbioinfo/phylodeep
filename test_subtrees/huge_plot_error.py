@@ -51,7 +51,7 @@ if __name__ == "__main__":
     ERROR_COL = 'relative error'
     plot_df = pd.DataFrame(data=data, columns=['parameter', ERROR_COL, 'config'])
     # CNN-large, FFNN-subtrees, CNN-subtrees, FFNN-huge-on-large
-    palette = [sns.color_palette("colorblind")[7]] + sns.color_palette("colorblind")[1:]
+    palette = [sns.color_palette("colorblind")[7]] + sns.color_palette("colorblind")[3:]
     sns.swarmplot(x="parameter", y=ERROR_COL, palette=palette, data=plot_df, alpha=.8, hue="config", ax=ax, dodge=True)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
