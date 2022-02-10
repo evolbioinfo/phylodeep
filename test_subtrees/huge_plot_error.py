@@ -28,10 +28,9 @@ if __name__ == "__main__":
             df.loc[mask, '{}_error'.format(par)] = (df.loc[mask, par] - real_df[par]) / real_df[par]
 
     plt.clf()
-    n_types = len(types)
     print(types)
     fig, ax = plt.subplots(figsize=(5 * len(pars), 8))
-    rc = {'font.size': 12, 'axes.labelsize': 10, 'legend.fontsize': 10, 'axes.titlesize': 10, 'xtick.labelsize': 10,
+    rc = {'font.size': 12, 'axes.labelsize': 12, 'legend.fontsize': 12, 'axes.titlesize': 10, 'xtick.labelsize': 10,
           'ytick.labelsize': 10}
     sns.set(style="whitegrid")
     sns.set(rc=rc)
@@ -42,12 +41,14 @@ if __name__ == "__main__":
     par2type2avg_error = defaultdict(lambda: dict())
     for type in types:
         for par in pars:
-            data.extend([[par, _, type]
-                         for _ in df.loc[df['type'] == type, '{}_error'.format(par)].apply(abs_error_or_1)])
+
+            if 'on large NN' not in type:
+                data.extend([[par, _, type]
+                             for _ in df.loc[df['type'] == type, '{}_error'.format(par)].apply(abs_error_or_1)])
             par2type2avg_error[par][type] = \
                 '{:.2f} ({:.2f})'.format(np.mean(np.abs(df.loc[df['type'] == type, '{}_error'.format(par)])),
                                          np.mean(df.loc[df['type'] == type, '{}_error'.format(par)]))
-
+    types = [_ for _ in types if 'on large NN' not in _]
     ERROR_COL = 'relative error'
     plot_df = pd.DataFrame(data=data, columns=['parameter', ERROR_COL, 'config'])
     # CNN-large, FFNN-subtrees, CNN-subtrees, FFNN-huge-on-large
@@ -68,10 +69,11 @@ if __name__ == "__main__":
         boxes = [TextArea(text, textprops=dict(color=color, ha='center', va='center', fontsize='x-small',
                                                fontweight='bold'))
                  for text, color in zip((par2type2avg_error[par][_] for _ in types), palette)]
-        return HPacker(children=boxes, align="center", pad=0, sep=12)
-    xbox = HPacker(children=[get_xbox(par) for par in pars], align="center", pad=0, sep=50 if len(pars) <= 3 else 65)
+        return HPacker(children=boxes, align="center", pad=0, sep=30)
+    xbox = HPacker(children=[get_xbox(par) for par in pars], align="center", pad=0,
+                   sep=80 if len(pars) == 2 else 85 if len(pars) <= 3 else 95)
     anchored_xbox = AnchoredOffsetbox(loc=3, child=xbox, pad=0, frameon=False,
-                                      bbox_to_anchor=(0.08 if len(pars) == 2 else 0.06 if len(pars) == 3 else 0.05,
+                                      bbox_to_anchor=(0.12 if len(pars) == 2 else 0.08 if len(pars) == 3 else 0.06,
                                                       -0.05),
                                       bbox_transform=ax.transAxes, borderpad=0.)
     ax.set_xlabel('')
@@ -81,3 +83,5 @@ if __name__ == "__main__":
     fig.set_size_inches(5 * len(pars), 8)
     plt.tight_layout()
     plt.savefig(params.png, dpi=300)
+
+    print(par2type2avg_error)

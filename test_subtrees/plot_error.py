@@ -35,7 +35,7 @@ if __name__ == "__main__":
     plt.clf()
     n_types = len(types)
     print(types)
-    fig, ax = plt.subplots(figsize=(5 * len(pars), 8))
+    fig, ax = plt.subplots(figsize=(5 * len(pars), 6))
     rc = {'font.size': 12, 'axes.labelsize': 10, 'legend.fontsize': 10, 'axes.titlesize': 10, 'xtick.labelsize': 10,
           'ytick.labelsize': 10}
     sns.set(style="whitegrid")
@@ -50,7 +50,7 @@ if __name__ == "__main__":
             data.extend([[par, _, type]
                          for _ in df.loc[df['type'] == type, '{}_error'.format(par)].apply(abs_error_or_1)])
             par2type2avg_error[par][type] = \
-                '{:.2f} ({:.2f})'.format(np.mean(np.abs(df.loc[df['type'] == type, '{}_error'.format(par)])),
+                '{:.2f}({:.2f})'.format(np.mean(np.abs(df.loc[df['type'] == type, '{}_error'.format(par)])),
                                          np.mean(df.loc[df['type'] == type, '{}_error'.format(par)]))
 
     ERROR_COL = 'relative error'
@@ -72,18 +72,18 @@ if __name__ == "__main__":
 
     small = params.how == 'small_on_large'
     def get_xbox(par):
-        boxes = [TextArea(text, textprops=dict(color=color, ha='center', va='center', fontsize='x-small',
+        boxes = [TextArea(text, textprops=dict(color=color, ha='center', va='center', fontsize='xx-small',
                                                fontweight='bold'))
                  for text, color in zip((par2type2avg_error[par][_] for _ in types), palette)]
-        return HPacker(children=boxes, align="center", pad=0, sep=10 if small else 1)
-    xbox = HPacker(children=[get_xbox(par) for par in pars], align="center", pad=0, sep=55 if small else 35)
+        return HPacker(children=boxes, align="center", pad=0, sep=2 if small else 0)
+    xbox = HPacker(children=[get_xbox(par) for par in pars], align="center", pad=0, sep=(70 if len(pars) == 2 else 75) if small else 30)
     anchored_xbox = AnchoredOffsetbox(loc=3, child=xbox, pad=0, frameon=False,
-                                      bbox_to_anchor=(0.08 if small else 0.05, -0.05),
+                                      bbox_to_anchor=(0.1 if small and len(pars) == 2 else 0.08 if len(pars) == 2 else 0.07 if small else 0.05, -0.075),
                                       bbox_transform=ax.transAxes, borderpad=0.)
     ax.set_xlabel('')
     ax.add_artist(anchored_xbox)
     leg = ax.legend()
 
-    fig.set_size_inches(5 * len(pars), 8)
+    fig.set_size_inches(4 * len(pars), 5)
     plt.tight_layout()
     plt.savefig(params.png, dpi=300)
