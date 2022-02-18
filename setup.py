@@ -23,7 +23,7 @@ setup(
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    version='0.0.100',
+    version='0.2.53',
     description='Phylodynamic paramater and model inference using pretrained deep neural networks.',
     author='Jakub Voznica',
     author_email='jakub.voznica@pasteur.fr',
@@ -34,7 +34,7 @@ setup(
               'paramdeep', 'phylodeep', 'deep learning', 'convolutional networks'],
     install_requires=['ete3', 'pandas', 'numpy', 'scipy==1.1.0', 'scikit-learn==0.19.1',
                       'tensorflow==1.13.1', 'joblib==0.13.2', 'h5py==2.10.0', 'Keras==2.4.3', 'matplotlib==3.1.3',
-                      'phylodeep-data-BD-small', 'phylodeep-data-BD-large',
+                      'phylodeep-data-BD-small', 'phylodeep-data-BD-large>=0.0.2',
                       'phylodeep-data-BDEI-small', 'phylodeep-data-BDEI-large',
                       'phylodeep-data-BDSS-large'],
     entry_points={

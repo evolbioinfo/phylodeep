@@ -161,35 +161,35 @@ rule split:
 #        gzip {params.nwk}
 #        """
 #
-#rule combine_logs:
-#    '''
-#    Combines logs.
-#    '''
-#    input:
-#        log = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{{model}}_huge', '{{name}}.{i}.csv'), i=range(REPETITIONS))
-#    output:
-#        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv.gz'),
-#    params:
-#        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv'),
-#        log_pattern = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.$i.csv'),
-#        mem = 2000,
-#        name = 'combine_{model}',
-#        qos = 'fast'
-#    threads: 1
-#    shell:
-#        """
-#        rm -rf {output.log} {params.log}
-#        for i in {{0..99}}
-#        do
-#            if [ $i -eq 0 ]
-#            then
-#                cat {params.log_pattern} > {params.log}
-#            else
-#                tail -n 1 {params.log_pattern} >> {params.log}
-#            fi
-#        done
-#        gzip {params.log}
-#        """
+rule combine_logs:
+    '''
+    Combines logs.
+    '''
+    input:
+        log = expand(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{{model}}_huge', '{{name}}.{i}.csv'), i=range(REPETITIONS))
+    output:
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv.gz'),
+    params:
+        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.csv'),
+        log_pattern = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', '{name}.$i.csv'),
+        mem = 2000,
+        name = 'combine_{model}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        rm -rf {output.log} {params.log}
+        for i in {{0..99}}
+        do
+            if [ $i -eq 0 ]
+            then
+                cat {params.log_pattern} > {params.log}
+            else
+                tail -n 1 {params.log_pattern} >> {params.log}
+            fi
+        done
+        gzip {params.log}
+        """
 
 rule estimate_cnn:
     '''
@@ -214,27 +214,27 @@ rule estimate_cnn:
         paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN} > {output.log_CNN}
         """
 
-rule estimate_ffnn:
-    '''
-    Extracts the oldest part of the subtree, estimates parameters on it.
-    '''
-    input:
-        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.{i}.nwk'),
-        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.{i}.csv'),
-    output:
-        est_FFNN = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS.{i}.csv')),
-        log_FFNN = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS_log.{i}.csv')),
-    params:
-        mem = 2000,
-        name = 'subtrees_{model}.{i}',
-        qos = 'fast'
-    threads: 1
-    shell:
-        """
-        pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
-        p=`tail -n 1 {input.log} | cut -d, -f$pcol `
-        paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN} > {output.log_FFNN}
-        """
+#rule estimate_ffnn:
+#    '''
+#    Extracts the oldest part of the subtree, estimates parameters on it.
+#    '''
+#    input:
+#        nwk = os.path.join(sim_folder, 'Supp_Fig_10', 'test_trees', '{model}_huge_100.{i}.nwk'),
+#        log = os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'TARGET.{i}.csv'),
+#    output:
+#        est_FFNN = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS.{i}.csv')),
+#        log_FFNN = temp(os.path.join(sim_folder, 'Supp_Fig_10', 'predicted_values', '{model}_huge', 'FFNN_SS_log.{i}.csv')),
+#    params:
+#        mem = 2000,
+#        name = 'subtrees_{model}.{i}',
+#        qos = 'fast'
+#    threads: 1
+#    shell:
+#        """
+#        pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
+#        p=`tail -n 1 {input.log} | cut -d, -f$pcol `
+#        paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN} > {output.log_FFNN}
+#        """
 
 rule combine_estimates:
     '''

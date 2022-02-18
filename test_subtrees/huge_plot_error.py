@@ -41,13 +41,15 @@ if __name__ == "__main__":
     par2type2avg_error = defaultdict(lambda: dict())
     for type in types:
         for par in pars:
-
             if 'on large NN' not in type:
                 data.extend([[par, _, type]
                              for _ in df.loc[df['type'] == type, '{}_error'.format(par)].apply(abs_error_or_1)])
             par2type2avg_error[par][type] = \
-                '{:.2f} ({:.2f})'.format(np.mean(np.abs(df.loc[df['type'] == type, '{}_error'.format(par)])),
+                '{:.2f}({:.2f})'.format(np.mean(np.abs(df.loc[df['type'] == type, '{}_error'.format(par)])),
                                          np.mean(df.loc[df['type'] == type, '{}_error'.format(par)]))
+    large_NN_type = [_ for _ in types if 'on large NN' in _]
+    for _ in large_NN_type:
+        df = df.loc[df['type'] != _, :]
     types = [_ for _ in types if 'on large NN' not in _]
     ERROR_COL = 'relative error'
     plot_df = pd.DataFrame(data=data, columns=['parameter', ERROR_COL, 'config'])
@@ -69,19 +71,20 @@ if __name__ == "__main__":
         boxes = [TextArea(text, textprops=dict(color=color, ha='center', va='center', fontsize='x-small',
                                                fontweight='bold'))
                  for text, color in zip((par2type2avg_error[par][_] for _ in types), palette)]
-        return HPacker(children=boxes, align="center", pad=0, sep=30)
+        return HPacker(children=boxes, align="center", pad=0, sep=1)
     xbox = HPacker(children=[get_xbox(par) for par in pars], align="center", pad=0,
-                   sep=80 if len(pars) == 2 else 85 if len(pars) <= 3 else 95)
+                   sep=62 if len(pars) == 2 else 64 if len(pars) <= 3 else 70)
     anchored_xbox = AnchoredOffsetbox(loc=3, child=xbox, pad=0, frameon=False,
                                       bbox_to_anchor=(0.12 if len(pars) == 2 else 0.08 if len(pars) == 3 else 0.06,
-                                                      -0.05),
+                                                      -0.1),
                                       bbox_transform=ax.transAxes, borderpad=0.)
     ax.set_xlabel('')
     ax.add_artist(anchored_xbox)
     leg = ax.legend()
 
-    fig.set_size_inches(5 * len(pars), 8)
+    fig.set_size_inches(3.5 * len(pars), 6)
     plt.tight_layout()
     plt.savefig(params.png, dpi=300)
+
 
     print(par2type2avg_error)
