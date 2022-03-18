@@ -1,16 +1,17 @@
 
-import warnings
 import os
-import sys
 import pickle as pk
-import pandas as pd
+import warnings
 
 warnings.filterwarnings('ignore')
 
-from sklearn.externals import joblib
 
-# import joblib
-# sys.modules['sklearn.externals.joblib'] = joblib
+try:
+    from sklearn.externals import joblib
+except:
+    import joblib
+    import sys
+    sys.modules['sklearn.externals.joblib'] = joblib
 
 
 from tensorflow.python.keras.models import model_from_json

@@ -22,8 +22,9 @@ setup(
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries :: Python Modules',
+        'Programming Language :: Python :: 3'
     ],
-    version='0.2.53',
+    version='0.2.58',
     description='Phylodynamic paramater and model inference using pretrained deep neural networks.',
     author='Jakub Voznica',
     author_email='jakub.voznica@pasteur.fr',
