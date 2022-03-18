@@ -57,10 +57,10 @@ if __name__ == "__main__":
         df = df.append(rdf)
 
 
-    for (label, csv) in zip(('CNN', 'FFNN',
-                             'CNN (on {})'.format('large' if params.small else 'small'),
-                             'FFNN (on {})'.format('large' if params.small else 'small'),
-                             'CNN (subtrees)', 'FFNN (subtrees)'),
+    for (label, csv) in zip(('CNN-CBLV', 'FFNN-SS',
+                             'CNN-CBLV (trained on {} trees)'.format('large' if params.small else 'small'),
+                             'FFNN-SS (trained on {} trees)'.format('large' if params.small else 'small'),
+                             'CNN-CBLV (subtree-based prediction)', 'FFNN-SS (subtree-based prediction)'),
                             (params.estimated_CNN_large, params.estimated_FFNN_large,
                              params.estimated_CNN, params.estimated_FFNN,
                              params.estimated_CNN_subtrees, params.estimated_FFNN_subtrees)):

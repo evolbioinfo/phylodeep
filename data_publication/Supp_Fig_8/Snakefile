@@ -1,0 +1,116 @@
+import os
+
+"""
+Create small trees by extracting clusters of appropriate size
+"""
+
+# To run locally:
+# snakemake --keep-going --cores 7
+
+localrules: all
+
+sim_folder = os.path.abspath('.')
+
+rule all:
+    input:
+        expand(os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small_errors.svg'), model=['BDEI', 'BD']),
+        expand(os.path.join(sim_folder, 'predicted_values', '{model}_small_on_large_errors.svg'), model=['BDEI', 'BD'])
+
+
+
+rule estimate_from_subtree:
+    '''
+    Extracts clusters from the subtree, estimates parameters on each of them and takes the mean.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, '..', 'Fig_3', 'test_trees', '{model}_large_100.nwk.gz'),
+        log = os.path.join(sim_folder, '..', 'Fig_3', 'predicted_values', '{model}_large', 'TARGET.csv.gz'),
+    output:
+        nwk = os.path.join(sim_folder, 'test_trees', '{model}_subtree_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'TARGET.csv.gz'),
+        est_CNN = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'CNN_CBLV_subtrees.csv.gz'),
+        est_FFNN = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'FFNN_SS_subtrees.csv.gz'),
+    params:
+        mem = 2000,
+        name = 'subtrees_{model}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 extract_subtree.py --in_log {input.log} --in_nwk {input.nwk} \
+        --out_nwk {output.nwk} --out_log {output.log} --min_n 50 --max_n 199 \
+        --out_est_CNN {output.est_CNN} --out_est_FFNN {output.est_FFNN} --model {wildcards.model}
+        """
+
+
+
+rule combine_estimates_large_on_small:
+    '''
+    Combines estimates.
+    '''
+    input:
+        est_FFNN = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'FFNN_SS.csv.gz'),
+        est_CNN_subtrees = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'CNN_CBLV_subtrees.csv.gz'),
+        est_FFNN_subtrees = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'FFNN_SS_subtrees.csv.gz'),
+        real = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small', 'TARGET.csv.gz'),
+        est_CNN_large = os.path.join(sim_folder, '..', 'Fig_3', 'predicted_values', '{model}_large', 'CNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, '..', 'Fig_3', 'predicted_values', '{model}_large', 'FFNN_SS.csv.gz'),
+    output:
+        tab = os.path.join(sim_folder, 'predicted_values', '{model}_large_on_small_estimates.tab'),
+    params:
+        mem = 2000,
+        name = 'estimates',
+        qos = 'fast',
+    threads: 1
+    shell:
+        """
+        python3 summary_table.py --real {input.real} \
+        --estimated_FFNN {input.est_FFNN} \
+        --estimated_CNN_subtrees {input.est_CNN_subtrees} --estimated_FFNN_subtrees {input.est_FFNN_subtrees} \
+        --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
+        --tab {output.tab} --model {wildcards.model}
+        """
+
+
+rule combine_estimates_small_on_large_full:
+    '''
+    Combines estimates.
+    '''
+    input:
+        est_FFNN = os.path.join(sim_folder, 'predicted_values', '{model}_small_on_large', 'FFNN_SS.csv.gz'),
+        est_CNN = os.path.join(sim_folder, 'predicted_values', '{model}_small_on_large', 'CNN_CBLV.csv.gz'),
+        real = os.path.join(sim_folder, 'predicted_values', '{model}_small_on_large', 'TARGET.csv.gz'),
+        est_CNN_large = os.path.join(sim_folder, '..', 'Supp_Fig_2', 'predicted_values', '{model}_small', 'CNN_CBLV.csv.gz'),
+        est_FFNN_large = os.path.join(sim_folder, '..', 'Supp_Fig_2', 'predicted_values', '{model}_small', 'FFNN_SS.csv.gz'),
+    output:
+        tab = os.path.join(sim_folder, 'predicted_values', '{model}_small_on_large_estimates.tab'),
+    params:
+        mem = 2000,
+        name = 'estimates',
+        qos = 'fast',
+    threads: 1
+    shell:
+        """
+        python3 summary_table.py --real {input.real} \
+        --estimated_FFNN {input.est_FFNN} --estimated_CNN {input.est_CNN} \
+        --estimated_CNN_large {input.est_CNN_large} --estimated_FFNN_large {input.est_FFNN_large} \
+        --tab {output.tab} --model {wildcards.model} --small
+        """
+
+rule plot_errors:
+    '''
+    Plots the errors.
+    '''
+    input:
+        tab = os.path.join(sim_folder, 'predicted_values', '{model}_{how}_estimates.tab'),
+    output:
+        png = os.path.join(sim_folder, 'predicted_values', '{model,BDEI|BD}_{how}_errors.svg'),
+    params:
+        mem = 2000,
+        name = 'errors',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        python3 plot_error.py --estimates {input.tab} --png {output.png} --how {wildcards.how}
+        """

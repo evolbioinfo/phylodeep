@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 
-files = glob.glob('/home/azhukova/projects/phylodeep/data_publication/Supp_Fig_10/predicted_values/*_huge/FFNN_SS_log.csv.gz')
+files = glob.glob('/home/azhukova/projects/phylodeep/data_publication/Fig_5/predicted_values/*_huge/FFNN_SS_log.csv.gz')
 
 if __name__ == "__main__":
     import argparse
