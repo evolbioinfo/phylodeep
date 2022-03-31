@@ -77,10 +77,6 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
             subpredictions['weight'] /= sum(sizes)
             for col in df.columns:
                 df.loc[i, col] = (subpredictions[col] * subpredictions['weight']).sum()
-        n_branches_used = sum(2 * _ - 1 for _ in sizes)
-        n_branches = 2 * n_tips_total - 1
-        print('Using {} out of {} branches ({:.1f}%) for the parameter inference.'
-              .format(n_branches_used, n_branches, 100 * n_branches_used / n_branches))
         return df
 
     return _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representation, ci_computation)
