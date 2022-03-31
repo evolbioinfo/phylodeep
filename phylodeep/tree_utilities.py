@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from ete3 import Tree
 
@@ -99,6 +101,10 @@ def extract_clusters(tre, min_size, max_size):
     :param tre: ete3.Tree
     :return: a generator of extracted subtrees
     """
+    n_branches = 2 * len(tre) - 2
+    n_subtrees = 0
+    n_subtree_branches = 0
+
     for i, n in enumerate(tre.traverse('levelorder')):
         n.add_feature('date', (((0 if n.is_root() else getattr(n.up, 'date')[0]) + n.dist), i))
 
@@ -147,10 +153,14 @@ def extract_clusters(tre, min_size, max_size):
         if 'top' == how:
             n.detach()
             if len(n) <= max_size:
+                n_subtrees += 1
+                n_subtree_branches += 2 * len(n) - 2
                 yield n
                 continue
             # tips should contain exactly max_size oldest tips
             tips = getattr(n, 'sorted-tips')
+            n_subtrees += 1
+            n_subtree_branches += 2 * len(tips) - 2
             yield remove_certain_leaves(n, lambda _: _ not in tips)
             continue
         i = int(how[6:])
@@ -167,7 +177,76 @@ def extract_clusters(tre, min_size, max_size):
                     for c in parent.children:
                         parent.up.add_child(c, dist=c.dist + parent.dist)
                     parent.up.remove_child(parent)
+        n_subtrees += 1
+        n_subtree_branches += 2 * len(n) - 2
         yield n.detach()
+
+    get_logger('subtree_picker').info('Picked {} subtrees covering {} out of {} branches ({:.1f}%).'
+                                      .format(n_subtrees, n_subtree_branches, n_branches,
+                                              100 * n_subtree_branches / n_branches))
+
+
+def get_logger(name, level=logging.INFO):
+    logger = logging.getLogger(name)
+    logger.setLevel(level=level)
+    logger.propagate = False
+    if not logger.hasHandlers():
+        ch = logging.StreamHandler()
+        formatter = logging.Formatter('%(name)s %(levelname)s %(asctime)s %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+    return logger
+
+
+def subtree_picker(in_nwk, out_nwk, min_size=MIN_TREE_SIZE_SMALL, max_size=MIN_TREE_SIZE_HUGE - 1):
+    """
+    Cuts the given tree into subtrees within a given size (s) range: min_size <= s <= max_size.
+
+    :param max_size: minimal number of tips for a subtree (inclusive)
+    :param min_size: maximal number of tips for a subtree (inclusive)
+    :param in_nwk: input tree in newick format
+        (must be rooted, without polytomies and containing at least --min_size tips)
+    :param out_nwk: output newick file to store the generated subtrees
+    """
+    if not min_size or not max_size or min_size < 1 or max_size < min_size:
+        raise ValueError('Minimal and maximal subtree sizes must be positive integers such that min_size <= max_size.')
+    tree = read_tree(in_nwk)
+    if min_size > len(tree):
+        raise ValueError('Minimal subtree size cannot be greater than the input tree size.')
+
+    with open(out_nwk, 'w+') as f:
+        for subtree in extract_clusters(tree, min_size=min_size, max_size=max_size):
+            f.write(subtree.write() + '\n')
+
+
+def subtree_picker_main():
+    """
+    Entry point, calling :py:func:`phylodeep.tree_utilities.subtree_picker`  with command-line arguments.
+    :return: void
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Cuts the given tree into subtrees within a given size (s) range: "
+                                                 "min_size <= s <= max_size.",
+                                     prog='subtree_picker')
+
+    tree_group = parser.add_argument_group('tree-related arguments')
+    tree_group.add_argument('-i', '--in_nwk',
+                            help="input tree in newick format "
+                                 "(must be rooted, without polytomies and containing at least --min_size tips).",
+                            type=str, required=True)
+    tree_group.add_argument('-o', '--out_nwk',
+                            help="output newick file to store the generated subtrees.",
+                            type=str, required=True)
+
+    size_group = parser.add_argument_group('subtree size-related arguments')
+    size_group.add_argument('-m', '--min_size', required=False, type=int, default=MIN_TREE_SIZE_SMALL,
+                             help="minimal number of tips for a subtree (inclusive).")
+    size_group.add_argument('-M', '--max_size', required=False, type=int, default=MIN_TREE_SIZE_HUGE - 1,
+                             help="maximal number of tips for a subtree (inclusive).")
+
+    params = parser.parse_args()
+    subtree_picker(**vars(params))
 
 
 def remove_certain_leaves(tr, to_remove=lambda node: False):

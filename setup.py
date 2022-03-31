@@ -24,7 +24,7 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Programming Language :: Python :: 3'
     ],
-    version='0.2.58',
+    version='0.2.59',
     description='Phylodynamic paramater and model inference using pretrained deep neural networks.',
     author='Jakub Voznica',
     author_email='jakub.voznica@pasteur.fr',
@@ -42,7 +42,8 @@ setup(
             'console_scripts': [
                 'checkdeep = phylodeep.checkdeep:main',
                 'modeldeep = phylodeep.modeldeep:main',
-                'paramdeep = phylodeep.paramdeep:main'
+                'paramdeep = phylodeep.paramdeep:main',
+                'subtree_picker = phylodeep.tree_utilities:subtree_picker_main'
             ]
     },
 )
