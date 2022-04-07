@@ -15,9 +15,10 @@ REPETITIONS=100
 
 rule all:
     input:
-#        nwk = expand(os.path.join(sim_folder, 'test_trees', '{model}_huge_100.nwk.gz'), model=models),
+        nwk = expand(os.path.join(sim_folder, 'test_trees', '{model}_huge_100.nwk.gz'), model=models),
         errors = expand(os.path.join(sim_folder, 'predicted_values', '{model}_errors.svg'), model=models),
-#        logs = expand(os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{name}_log.csv.gz'), model=models, name=['CNN_CBLV', 'FFNN_SS'])
+        logs = expand(os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{name}_log.csv.gz'), model=models, name=['CNN_CBLV', 'FFNN_SS']),
+        tlogs = expand(os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{name}_time.csv.gz'), model=models, name=['CNN_CBLV', 'FFNN_SS'])
 
 
 rule split:
@@ -159,7 +160,7 @@ rule split:
 #        done
 #        gzip {params.nwk}
 #        """
-#
+
 rule combine_logs:
     '''
     Combines logs.
@@ -190,50 +191,49 @@ rule combine_logs:
         gzip {params.log}
         """
 
-#rule estimate_cnn:
-#    '''
-#    Extracts the oldest part of the subtree, estimates parameters on it.
-#    '''
-#    input:
-#        nwk = os.path.join(sim_folder, 'test_trees', '{model}_huge_100.{i}.nwk'),
-#        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'TARGET.{i}.csv'),
-#    output:
-#        est_CNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'CNN_CBLV.{i}.csv')),
-#        log_CNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'CNN_CBLV_log.{i}.csv')),
-#    params:
-#        mem = 2000,
-#        name = 'subtrees_{model}.{i}',
-#        qos = 'fast'
-#    threads: 1
-#    shell:
-#        """
-#        pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
-#        p=`tail -n 1 {input.log} | cut -d, -f$pcol `
-#        echo "paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN} > {output.log_CNN}"
-#        paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN} > {output.log_CNN}
-#        """
+rule estimate_cnn:
+    input:
+        nwk = os.path.join(sim_folder, 'test_trees', '{model}_huge_100.{i}.nwk'),
+        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'TARGET.{i}.csv'),
+    output:
+        est_CNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'CNN_CBLV.{i}.csv')),
+        log_CNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'CNN_CBLV_log.{i}.csv')),
+        tlog = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'CNN_CBLV_time.{i}.csv')),
+    params:
+        mem = 2000,
+        name = 'subtrees_{model}.{i}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
+        p=`tail -n 1 {input.log} | cut -d, -f$pcol `
+        SECONDS=0
+        paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v CNN_FULL_TREE -o {output.est_CNN} > {output.log_CNN}
+        echo $SECONDS > {output.tlog}
+        """
 
-#rule estimate_ffnn:
-#    '''
-#    Extracts the oldest part of the subtree, estimates parameters on it.
-#    '''
-#    input:
-#        nwk = os.path.join(sim_folder, 'test_trees', '{model}_huge_100.{i}.nwk'),
-#        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'TARGET.{i}.csv'),
-#    output:
-#        est_FFNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'FFNN_SS.{i}.csv')),
-#        log_FFNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'FFNN_SS_log.{i}.csv')),
-#    params:
-#        mem = 2000,
-#        name = 'subtrees_{model}.{i}',
-#        qos = 'fast'
-#    threads: 1
-#    shell:
-#        """
-#        pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
-#        p=`tail -n 1 {input.log} | cut -d, -f$pcol `
-#        paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN} > {output.log_FFNN}
-#        """
+rule estimate_ffnn:
+    input:
+        nwk = os.path.join(sim_folder, 'test_trees', '{model}_huge_100.{i}.nwk'),
+        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'TARGET.{i}.csv'),
+    output:
+        est_FFNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'FFNN_SS.{i}.csv')),
+        log_FFNN = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'FFNN_SS_log.{i}.csv')),
+        tlog = temp(os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'FFNN_SS_time.{i}.csv')),
+    params:
+        mem = 2000,
+        name = 'subtrees_{model}.{i}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        pcol=`head -n 1 {input.log} | tr ',' '\\n' | cat -n | grep "sampling" | cut -f 1`
+        p=`tail -n 1 {input.log} | cut -d, -f$pcol `
+        SECONDS=0
+        paramdeep -t {input.nwk} -p $p -m {wildcards.model} -v FFNN_SUMSTATS -o {output.est_FFNN} > {output.log_FFNN}
+        echo $SECONDS > {output.tlog}
+        """
 
 rule combine_estimates:
     '''
