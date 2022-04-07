@@ -91,6 +91,16 @@ def _merge(l1, l2, key, max_size=np.inf):
     return res
 
 
+def _annotate_relative_dates(tre, date_feature):
+    """
+    Annotates tree nodes with the relative date (time since the root).
+    To be able to uniquely sort equal dates, we make a tuple of the date: (relative_date, i),
+    where i in the level order of the node
+    """
+    for i, n in enumerate(tre.traverse('levelorder')):
+        n.add_feature(date_feature, (((0 if n.is_root() else getattr(n.up, date_feature)[0]) + n.dist), i))
+
+
 def extract_clusters(tre, min_size, max_size):
     """
     Cuts the given tree into subtrees within a given size (s) range: min_size <= s <= max_size.
@@ -101,74 +111,112 @@ def extract_clusters(tre, min_size, max_size):
     :param tre: ete3.Tree
     :return: a generator of extracted subtrees
     """
+    date_feature = 'date'
+    sorted_tips_feature = 'sorted-tips'
+    taken_num_feature = 'taken'
+    selection_strategy_feature = 'how'
+    strategy_top = 'top'
+    strategy_recursive = 'recurse'
+    strategy_mixed = 'mixed_{}'
+
+    _annotate_relative_dates(tre, date_feature)
+
+    def get_oldest_date(m):
+        return getattr(getattr(m, sorted_tips_feature)[0], date_feature)
+
+    def get_youngest_date(m):
+        return getattr(getattr(m, sorted_tips_feature)[-1], date_feature)
+
+    for n in tre.traverse('postorder'):
+        n.add_feature(sorted_tips_feature,
+                      [n] if n.is_leaf()
+                      else _merge(*(getattr(_, sorted_tips_feature) for _ in n.children),
+                                  key=lambda _: getattr(_, date_feature),
+                                  max_size=max_size))
+        n_size = len(n)
+
+        if n_size < min_size:
+            n.add_feature(taken_num_feature, 0)
+        elif n_size <= max_size:
+            n.add_feature(taken_num_feature, n_size)
+            n.add_feature(selection_strategy_feature, strategy_top)
+        else:
+            taken = sum(getattr(_, taken_num_feature) for _ in n.children)
+            how = strategy_recursive
+
+            # if all the top leaves would come from just one of the children anyway,
+            # the mixed solution will give the same result as recurse
+            older_child, younger_child = sorted(n.children, key=get_oldest_date)
+            if len(older_child) >= max_size and get_youngest_date(older_child) < get_oldest_date(younger_child):
+                continue
+
+            tips = getattr(n, sorted_tips_feature)
+            next_todo = list(n.children)
+            for i in range(min_size, min(n_size, max_size) + 1):
+                date = getattr(tips[i - 1], date_feature)
+                size = i
+                todo = next_todo
+                next_todo = []
+                while todo:
+                    m = todo.pop()
+
+                    # if there is nothing to take here, no need to descend further
+                    if not getattr(m, taken_num_feature):
+                        continue
+
+                    if getattr(getattr(m, sorted_tips_feature)[0], date_feature) <= date:
+                        todo.extend(m.children)
+                    else:
+                        size += getattr(m, taken_num_feature)
+                        next_todo.append(m)
+
+                if size > taken:
+                    taken = size
+                    how = strategy_mixed.format(i) if size > i else strategy_top
+            n.add_feature(taken_num_feature, taken)
+            n.add_feature(selection_strategy_feature, how)
+
     n_branches = 2 * len(tre) - 2
     n_subtrees = 0
     n_subtree_branches = 0
+    for subtree in _dissect_tree(tre, min_size, max_size, date_feature,
+                                 selection_strategy_feature, sorted_tips_feature, strategy_recursive, strategy_top):
+        yield subtree
+        n_subtrees += 1
+        n_subtree_branches += 2 * len(subtree) - 2
 
-    for i, n in enumerate(tre.traverse('levelorder')):
-        n.add_feature('date', (((0 if n.is_root() else getattr(n.up, 'date')[0]) + n.dist), i))
+    get_logger('subtree_picker').info('Picked {} subtrees covering {} out of {} branches ({:.1f}%).'
+                                      .format(n_subtrees, n_subtree_branches, n_branches,
+                                              100 * n_subtree_branches / n_branches))
 
-    for n in tre.traverse('postorder'):
-        n_size = len(n)
 
-        n.add_feature('sorted-tips',
-                      [n] if n.is_leaf()
-                      else _merge(*(getattr(_, 'sorted-tips') for _ in n.children), key=lambda _: getattr(_, 'date'),
-                                  max_size=max_size))
-
-        if n_size < min_size:
-            n.add_feature('taken', 0)
-        elif n_size <= max_size:
-            n.add_feature('taken', n_size)
-            n.add_feature('how', 'top')
-        else:
-            taken = sum(getattr(_, 'taken') for _ in n.children)
-            how = 'recurse'
-            tips = getattr(n, 'sorted-tips')
-            for i in range(min_size, min(n_size, max_size) + 1):
-                date = getattr(tips[i - 1], 'date')
-                size = i
-                todo = list(n.children)
-                while todo:
-                    m = todo.pop()
-                    if getattr(getattr(m, 'sorted-tips')[0], 'date') <= date:
-                        todo.extend(m.children)
-                    else:
-                        size += getattr(m, 'taken')
-                if size > taken:
-                    taken = size
-                    how = 'mixed_{}'.format(i) if size > i else 'top'
-            n.add_feature('taken', taken)
-            n.add_feature('how', how)
-
+def _dissect_tree(tre, min_size, max_size, date_feature, selection_strategy_feature,
+                 sorted_tips_feature, strategy_recursive, strategy_top):
     todo = [tre]
     while todo:
         n = todo.pop()
         if len(n) < min_size:
             continue
-        how = getattr(n, 'how')
-        if 'recurse' == how:
+        how = getattr(n, selection_strategy_feature)
+        if strategy_recursive == how:
             todo.extend(n.children)
             continue
-        if 'top' == how:
+        if strategy_top == how:
             n.detach()
             if len(n) <= max_size:
-                n_subtrees += 1
-                n_subtree_branches += 2 * len(n) - 2
                 yield n
                 continue
             # tips should contain exactly max_size oldest tips
-            tips = getattr(n, 'sorted-tips')
-            n_subtrees += 1
-            n_subtree_branches += 2 * len(tips) - 2
+            tips = getattr(n, sorted_tips_feature)
             yield remove_certain_leaves(n, lambda _: _ not in tips)
             continue
+        # strategy mixed in action
         i = int(how[6:])
-        date = getattr(getattr(n, 'sorted-tips')[i - 1], 'date')
+        date = getattr(getattr(n, sorted_tips_feature)[i - 1], date_feature)
         child_todo = list(n.children)
         while child_todo:
             m = child_todo.pop()
-            if getattr(getattr(m, 'sorted-tips')[0], 'date') <= date:
+            if getattr(getattr(m, sorted_tips_feature)[0], date_feature) <= date:
                 child_todo.extend(m.children)
             else:
                 parent = m.up
@@ -177,13 +225,7 @@ def extract_clusters(tre, min_size, max_size):
                     for c in parent.children:
                         parent.up.add_child(c, dist=c.dist + parent.dist)
                     parent.up.remove_child(parent)
-        n_subtrees += 1
-        n_subtree_branches += 2 * len(n) - 2
         yield n.detach()
-
-    get_logger('subtree_picker').info('Picked {} subtrees covering {} out of {} branches ({:.1f}%).'
-                                      .format(n_subtrees, n_subtree_branches, n_branches,
-                                              100 * n_subtree_branches / n_branches))
 
 
 def get_logger(name, level=logging.INFO):
