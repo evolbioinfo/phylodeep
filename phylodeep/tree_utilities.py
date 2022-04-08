@@ -147,32 +147,30 @@ def extract_clusters(tre, min_size, max_size):
             # if all the top leaves would come from just one of the children anyway,
             # the mixed solution will give the same result as recurse
             older_child, younger_child = sorted(n.children, key=get_oldest_date)
-            if len(older_child) >= max_size and get_youngest_date(older_child) < get_oldest_date(younger_child):
-                continue
+            if not (len(older_child) >= max_size and get_youngest_date(older_child) < get_oldest_date(younger_child)):
+                tips = getattr(n, sorted_tips_feature)
+                next_todo = list(n.children)
+                for i in range(min_size, min(n_size, max_size) + 1):
+                    date = getattr(tips[i - 1], date_feature)
+                    size = i
+                    todo = next_todo
+                    next_todo = []
+                    while todo:
+                        m = todo.pop()
 
-            tips = getattr(n, sorted_tips_feature)
-            next_todo = list(n.children)
-            for i in range(min_size, min(n_size, max_size) + 1):
-                date = getattr(tips[i - 1], date_feature)
-                size = i
-                todo = next_todo
-                next_todo = []
-                while todo:
-                    m = todo.pop()
+                        # if there is nothing to take here, no need to descend further
+                        if not getattr(m, taken_num_feature):
+                            continue
 
-                    # if there is nothing to take here, no need to descend further
-                    if not getattr(m, taken_num_feature):
-                        continue
+                        if getattr(getattr(m, sorted_tips_feature)[0], date_feature) <= date:
+                            todo.extend(m.children)
+                        else:
+                            size += getattr(m, taken_num_feature)
+                            next_todo.append(m)
 
-                    if getattr(getattr(m, sorted_tips_feature)[0], date_feature) <= date:
-                        todo.extend(m.children)
-                    else:
-                        size += getattr(m, taken_num_feature)
-                        next_todo.append(m)
-
-                if size > taken:
-                    taken = size
-                    how = strategy_mixed.format(i) if size > i else strategy_top
+                    if size > taken:
+                        taken = size
+                        how = strategy_mixed.format(i) if size > i else strategy_top
             n.add_feature(taken_num_feature, taken)
             n.add_feature(selection_strategy_feature, how)
 

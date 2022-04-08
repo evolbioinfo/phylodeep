@@ -1,24 +1,31 @@
 import gzip
 import glob
 import re
+import time
 
 import numpy as np
+from phylodeep.tree_utilities import extract_clusters, read_tree, MIN_TREE_SIZE_SMALL, MIN_TREE_SIZE_LARGE, MIN_TREE_SIZE_HUGE
+from ete3 import Tree
 
-files = glob.glob('./predicted_values/*_huge/FFNN_SS_log.csv.gz')
+def mean(l):
+    return sum(l) / len(l)
+
+TREES = 'test_trees/BDSS_huge_100.nwk.gz'
 
 if __name__ == "__main__":
-    import argparse
 
-    parser = argparse.ArgumentParser(description="Splits a forest into trees.")
-    parser.add_argument('--in_log', nargs='+', default=files, type=str, help="tree files")
-    params = parser.parse_args()
-
-    for f in files:
-        model = re.findall(r'(\w+)_huge', f)[0]
-        percentages = []
-        with gzip.open(f, 'rt') as f:
-            for line in f:
-                n_sub, n_all, _, _ = (_ for _ in re.findall(r'\d+', line))
-                percentages.append(100.0 * int(n_sub) / int(n_all))
-        percentages = np.array(percentages)
-        print('{}: {:.2f} ({:.2f}-{:.2f})'.format(model, percentages.mean(), percentages.min(), percentages.max()))
+    percentages = []
+    times = []
+    with gzip.open(TREES, 'rt') as f:
+        for nwk in f.read().strip().split(';'):
+            if nwk:
+                tre = read_tree(nwk + ';')
+                n = 2 * len(tre) - 2
+                m = 0
+                t = time.time()
+                for st in extract_clusters(tre, min_size=MIN_TREE_SIZE_LARGE, max_size=MIN_TREE_SIZE_HUGE - 1):
+                    m += 2 * len(st) - 2
+                times.append(time.time() - t)
+                percentages.append(100 * m / n)
+    print('Tree picker conserved {} [{}-{}] % of branches'.format(mean(percentages), min(percentages), max(percentages)))
+    print('Tree picker took {} [{}-{}] s per tree ({} s for 100 trees)'.format(mean(times), min(times), max(times), sum(times)))
