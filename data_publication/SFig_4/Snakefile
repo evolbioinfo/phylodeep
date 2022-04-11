@@ -1,11 +1,7 @@
 import os
 
-"""
-Create small trees by extracting clusters of appropriate size
-"""
-
 # To run locally:
-# snakemake --keep-going --cores 7
+# snakemake --keep-going --cores 4 --use-singularity --singularity-prefix ~/.singularity --singularity-args "--home ~"
 
 localrules: all
 
@@ -35,6 +31,7 @@ rule estimate_from_subtree:
         name = 'subtrees_{model}',
         qos = 'fast'
     threads: 1
+    singularity: "docker://evolbioinfo/phylodeep:v0.2.60"
     shell:
         """
         python3 extract_subtree.py --in_log {input.log} --in_nwk {input.nwk} \
@@ -61,6 +58,7 @@ rule combine_estimates_large_on_small:
         name = 'estimates',
         qos = 'fast',
     threads: 1
+    singularity: "docker://evolbioinfo/python-evol:v3.6richer.1"
     shell:
         """
         python3 summary_table.py --real {input.real} \
@@ -88,6 +86,7 @@ rule combine_estimates_small_on_large_full:
         name = 'estimates',
         qos = 'fast',
     threads: 1
+    singularity: "docker://evolbioinfo/python-evol:v3.6richer.1"
     shell:
         """
         python3 summary_table.py --real {input.real} \
@@ -109,6 +108,7 @@ rule plot_errors:
         name = 'errors',
         qos = 'fast'
     threads: 1
+    singularity: "docker://evolbioinfo/python-evol:v3.6richer.1"
     shell:
         """
         python3 plot_error.py --estimates {input.tab} --png {output.png} --how {wildcards.how}
