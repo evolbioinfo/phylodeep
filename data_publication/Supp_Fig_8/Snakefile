@@ -43,7 +43,6 @@ rule estimate_from_subtree:
         """
 
 
-
 rule combine_estimates_large_on_small:
     '''
     Combines estimates.
