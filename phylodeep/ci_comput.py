@@ -1,3 +1,4 @@
+import os
 
 import pandas as pd
 import warnings
@@ -46,7 +47,15 @@ def load_and_rename_ci_files(model, encoding, tree_size, target=False):
     """
     # get path to CI files
     if model == 'BD' and tree_size == 'SMALL':
-        predicted_path, target_path = phylodeep_data_BD_small.get_ci()
+        # TODO: this is a quick fix for missing  get_ci() function in module phylodeep-data-BD-small,
+        # ideally the module should be updated instead
+        try:
+            predicted_path, target_path = phylodeep_data_BD_small.get_ci()
+        except AttributeError:
+            predicted_path = os.path.join(os.path.abspath(os.path.dirname(phylodeep_data_BD_small.__file__)),
+                                          'ci_computation/predicted_values')
+            target_path = os.path.join(os.path.abspath(os.path.dirname(phylodeep_data_BD_small.__file__)),
+                                       'ci_computation/target_values')
     elif model == 'BD' and tree_size == 'LARGE':
         predicted_path, target_path = phylodeep_data_BD_large.get_ci()
     elif model == 'BDEI' and tree_size == 'SMALL':

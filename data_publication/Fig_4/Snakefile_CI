@@ -1,0 +1,222 @@
+import os
+
+# To run locally:
+# snakemake --snakefile Snakefile_CI --keep-going --cores 4 --use-singularity --singularity-prefix ~/.singularity --singularity-args "--home ~"
+
+
+localrules: all
+
+sim_folder = os.path.abspath('.')
+models = ['BD', 'BDSS', 'BDEI']
+REPETITIONS=100
+
+rule all:
+    input:
+        cis = expand(os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{predictor}.CI.csv.gz'), model=models, predictor=['CNN_FULL_TREE', 'FFNN_SUMSTATS']),
+
+
+rule split:
+    '''
+    Splits a forest into trees.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'test_trees', '{model}_huge_100.nwk.gz'),
+        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', 'TARGET.csv.gz'),
+    output:
+        nwk = temp(expand(os.path.join(sim_folder, 'test_trees', '{{model}}_huge_100.{i}.nwk'), i=range(REPETITIONS))),
+        log = temp(expand(os.path.join(sim_folder, 'predicted_values', '{{model}}_huge', 'TARGET.{i}.csv'), i=range(REPETITIONS)))
+    params:
+        mem = 2000,
+        name = 'split',
+        qos = 'fast'
+    threads: 1
+    singularity: "docker://evolbioinfo/python-evol:v3.6richer.1"
+    shell:
+        """
+        python3 split.py --in_log {input.log} --in_nwk {input.nwk} --out_nwk {output.nwk} --out_log {output.log}
+        """
+
+rule combine_logs:
+    '''
+    Combines logs.
+    '''
+    input:
+        log = expand(os.path.join(sim_folder, 'predicted_values', '{{model}}_huge', '{{name}}.{i}.csv'), i=range(REPETITIONS))
+    output:
+        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{name}.csv.gz'),
+    params:
+        log = os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{name}.csv'),
+        log_pattern = os.path.join(sim_folder, 'predicted_values', '{model}_huge', '{name}.$i.csv'),
+        mem = 2000,
+        name = 'combine_{model}',
+        qos = 'fast'
+    threads: 1
+    shell:
+        """
+        rm -rf {output.log} {params.log}
+        n=$(( {REPETITIONS} - 1 ))
+        for i in $(seq 0 $n)
+        do
+            if [ $i -eq 0 ]
+            then
+                cat {params.log_pattern} > {params.log}
+            else
+                tail -n 1 {params.log_pattern} >> {params.log}
+            fi
+        done
+        gzip {params.log}
+        """
+
+
+rule estimate_bd:
+    '''
+    Estimates CIs for given BD parameters.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'test_trees', 'BD_huge_100.{i}.nwk'),
+        log = os.path.join(sim_folder, 'predicted_values', 'BD_huge', 'TARGET.{i}.csv'),
+    output:
+        ci_CNN = temp(os.path.join(sim_folder, 'predicted_values', 'BD_huge', '{predictor}.CI.{i}.csv')),
+    params:
+        mem = 2000,
+        name = 'ci_BD.{i}',
+        qos = 'fast'
+    threads: 1
+    singularity: "docker://evolbioinfo/phylodeep:v0.2.61"
+    shell:
+        """
+        line=`tail -n 1 {input.log}`
+
+        R=`echo $line | cut -d, -f1`
+        ip=`echo $line | cut -d, -f2`
+        p=`echo $line | cut -d, -f4`
+
+        paramdeep -t {input.nwk} -p $p -m BD -v {wildcards.predictor} -o {input.nwk}.estimates -c
+        line=`grep 'ci_2_5' {input.nwk}.estimates`
+        R_min=`echo $line | cut -d, -f2`
+        ip_min=`echo $line | cut -d, -f3`
+
+        line=`grep 'ci_97_5' {input.nwk}.estimates`
+        R_max=`echo $line | cut -d, -f2`
+        ip_max=`echo $line | cut -d, -f3`
+
+        comp_R1=`echo $R_min'<='$R | bc -l`
+        comp_R2=`echo $R_max'>='$R | bc -l`
+        comp_R=$(( comp_R1 * comp_R2 ))
+
+        comp_ip1=`echo $ip_min'<='$ip | bc -l`
+        comp_ip2=`echo $ip_max'>='$ip | bc -l`
+        comp_ip=$(( comp_ip1 * comp_ip2 ))
+
+        echo "R_naught,Infectious_period" > {output}
+        echo "$comp_R,$comp_ip" >> {output}
+        """
+
+rule estimate_bdei:
+    '''
+    Estimates CIs for given BDEI parameters.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'test_trees', 'BDEI_huge_100.{i}.nwk'),
+        log = os.path.join(sim_folder, 'predicted_values', 'BDEI_huge', 'TARGET.{i}.csv'),
+    output:
+        ci_CNN = temp(os.path.join(sim_folder, 'predicted_values', 'BDEI_huge', '{predictor}.CI.{i}.csv')),
+    params:
+        mem = 2000,
+        name = 'ci_BDEI.{i}',
+        qos = 'fast'
+    threads: 1
+    singularity: "docker://evolbioinfo/phylodeep:v0.2.61"
+    shell:
+        """
+        line=`tail -n 1 {input.log}`
+
+        R=`echo $line | cut -d, -f1`
+        ip=`echo $line | cut -d, -f2`
+        it=`echo $line | cut -d, -f3`
+        p=`echo $line | cut -d, -f4`
+
+        paramdeep -t {input.nwk} -p $p -m BDEI -v {wildcards.predictor} -o {input.nwk}.estimates -c
+        line=`grep 'ci_2_5' {input.nwk}.estimates`
+        R_min=`echo $line | cut -d, -f2`
+        ip_min=`echo $line | cut -d, -f3`
+        it_min=`echo $line | cut -d, -f4`
+
+        line=`grep 'ci_97_5' {input.nwk}.estimates`
+        R_max=`echo $line | cut -d, -f2`
+        ip_max=`echo $line | cut -d, -f3`
+        it_max=`echo $line | cut -d, -f4`
+
+        comp_R1=`echo $R_min'<='$R | bc -l`
+        comp_R2=`echo $R_max'>='$R | bc -l`
+        comp_R=$(( comp_R1 * comp_R2 ))
+
+        comp_ip1=`echo $ip_min'<='$ip | bc -l`
+        comp_ip2=`echo $ip_max'>='$ip | bc -l`
+        comp_ip=$(( comp_ip1 * comp_ip2 ))
+
+        comp_it1=`echo $it_min'<='$it | bc -l`
+        comp_it2=`echo $it_max'>='$it | bc -l`
+        comp_it=$(( comp_it1 * comp_it2 ))
+
+        echo "R_naught,Infectious_period,Incubation_period" > {output}
+        echo "$comp_R,$comp_ip,$comp_it" >> {output}
+        """
+
+rule estimate_bdss:
+    '''
+    Estimates CIs for given BDSS parameters.
+    '''
+    input:
+        nwk = os.path.join(sim_folder, 'test_trees', 'BDSS_huge_100.{i}.nwk'),
+        log = os.path.join(sim_folder, 'predicted_values', 'BDSS_huge', 'TARGET.{i}.csv'),
+    output:
+        ci_CNN = temp(os.path.join(sim_folder, 'predicted_values', 'BDSS_huge', '{predictor}.CI.{i}.csv')),
+    params:
+        mem = 2000,
+        name = 'ci_BDSS.{i}',
+        qos = 'fast'
+    threads: 1
+    singularity: "docker://evolbioinfo/phylodeep:v0.2.61"
+    shell:
+        """
+        line=`tail -n 1 {input.log}`
+
+        R=`echo $line | cut -d, -f1`
+        x=`echo $line | cut -d, -f2`
+        f=`echo $line | cut -d, -f3`
+        ip=`echo $line | cut -d, -f4`
+        p=`echo $line | cut -d, -f6`
+
+        paramdeep -t {input.nwk} -p $p -m BDSS -v {wildcards.predictor} -o {input.nwk}.estimates -c
+        line=`grep 'ci_2_5' {input.nwk}.estimates`
+        R_min=`echo $line | cut -d, -f2`
+        ip_min=`echo $line | cut -d, -f3`
+        x_min=`echo $line | cut -d, -f4`
+        f_min=`echo $line | cut -d, -f5`
+
+        line=`grep 'ci_97_5' {input.nwk}.estimates`
+        R_max=`echo $line | cut -d, -f2`
+        ip_max=`echo $line | cut -d, -f3`
+        x_max=`echo $line | cut -d, -f4`
+        f_max=`echo $line | cut -d, -f5`
+
+        comp_R1=`echo $R_min'<='$R | bc -l`
+        comp_R2=`echo $R_max'>='$R | bc -l`
+        comp_R=$(( comp_R1 * comp_R2 ))
+
+        comp_ip1=`echo $ip_min'<='$ip | bc -l`
+        comp_ip2=`echo $ip_max'>='$ip | bc -l`
+        comp_ip=$(( comp_ip1 * comp_ip2 ))
+
+        comp_f1=`echo $f_min'<='$f | bc -l`
+        comp_f2=`echo $f_max'>='$f | bc -l`
+        comp_f=$(( comp_f1 * comp_f2 ))
+
+        comp_x1=`echo $x_min'<='$x | bc -l`
+        comp_x2=`echo $x_max'>='$x | bc -l`
+        comp_x=$(( comp_x1 * comp_x2 ))
+
+        echo "R_naught,Infectious_period,X_transmission,Superspreading_individuals_fraction" > {output}
+        echo "$comp_R,$comp_ip,$comp_x,$comp_f" >> {output}
+        """
