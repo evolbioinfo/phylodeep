@@ -232,7 +232,7 @@ def get_logger(name, level=logging.INFO):
     logger.propagate = False
     if not logger.hasHandlers():
         ch = logging.StreamHandler()
-        formatter = logging.Formatter('%(name)s %(levelname)s %(asctime)s %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+        formatter = logging.Formatter('%(levelname)s:%(name)s:%(asctime)s %(message)s', datefmt="%Y-%m-%d_%H:%M:%S")
         ch.setFormatter(formatter)
         logger.addHandler(ch)
     return logger

@@ -13,9 +13,8 @@ except:
     import sys
     sys.modules['sklearn.externals.joblib'] = joblib
 
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from tensorflow.python.keras.models import model_from_json
-
 
 
 PRETRAINED_MODELS_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pretrained_models')
