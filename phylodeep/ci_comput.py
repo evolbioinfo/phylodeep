@@ -1,16 +1,20 @@
 
 import pandas as pd
 import warnings
-import os
 import numpy as np
 
-from phylodeep import FULL, SUMSTATS, BD, BDEI, BDSS
+from phylodeep import FULL
 import phylodeep_data_BD_small
 import phylodeep_data_BDEI_small
 import phylodeep_data_BD_large
 import phylodeep_data_BDEI_large
 import phylodeep_data_BDSS_large
 
+PREDICTED_VALUE = 'predicted_value'
+
+CI_97_5 = 'ci_97_5_boundary'
+
+CI_2_5 = 'ci_2_5_boundary'
 
 warnings.filterwarnings('ignore')
 
@@ -244,10 +248,10 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
         ci_97_5.append(qtls[1])
 
     # add ci values to the output table
-    ci_2_5 = pd.DataFrame(data=[ci_2_5], columns=PREDICTED_NAMES[model], index=['ci_2_5'])
-    ci_97_5 = pd.DataFrame(data=[ci_97_5], columns=PREDICTED_NAMES[model], index=['ci_97_5'])
+    ci_2_5 = pd.DataFrame(data=[ci_2_5], columns=PREDICTED_NAMES[model], index=[CI_2_5])
+    ci_97_5 = pd.DataFrame(data=[ci_97_5], columns=PREDICTED_NAMES[model], index=[CI_97_5])
     pred_vals = pred_vals.append(ci_2_5, ignore_index=True)
     pred_vals = pred_vals.append(ci_97_5, ignore_index=True)
-    pred_vals.index = ['predicted_value', 'ci_2_5_boundary', 'ci_97_5_boundary']
+    pred_vals.index = [PREDICTED_VALUE, CI_2_5, CI_97_5]
 
     return pred_vals

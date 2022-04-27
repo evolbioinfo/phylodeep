@@ -1,13 +1,13 @@
+import warnings
 
 import pandas as pd
 
 from phylodeep import FULL, SUMSTATS, BD, BDEI, BDSS
+from phylodeep.ci_comput import ci_comp, CI_2_5, PREDICTED_VALUE, CI_97_5
 from phylodeep.encoding import encode_into_summary_statistics, encode_into_most_recent
 from phylodeep.model_load import model_scale_load_ffnn, model_load_cnn
-from phylodeep.ci_comput import ci_comp
 from phylodeep.tree_utilities import *
 
-import warnings
 warnings.filterwarnings("ignore")
 
 prediction_method_options = [FULL, SUMSTATS]
@@ -49,7 +49,6 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
 
     # read trees
     tree = read_tree_file(tree_file)
-    n_tips_total = len(tree)
 
     # check tree size
     tree_size = check_tree_size(tree)
@@ -70,13 +69,23 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
                 _paramdeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation, ci_computation))
             sizes.append(len(subtree))
         df = pd.DataFrame(columns=predictions.columns)
-        indices = predictions.index.unique()
-        for i in indices:
-            subpredictions = predictions[predictions.index == i]
-            subpredictions['weight'] = sizes
-            subpredictions['weight'] /= sum(sizes)
-            for col in df.columns:
-                df.loc[i, col] = (subpredictions[col] * subpredictions['weight']).sum()
+        sizes = np.array(sizes)
+        n = sum(sizes)
+        pred_val_col = PREDICTED_VALUE if ci_computation else next(iter(predictions.index))
+        for col in df.columns:
+            predictions_value = predictions.loc[predictions.index == pred_val_col, col].to_numpy()
+            val = predictions_value.dot(sizes) / n
+            df.loc[pred_val_col, col] = val
+
+            if ci_computation:
+                ci_2_5 = predictions_value - predictions.loc[predictions.index == CI_2_5, col]
+                ci_97_5 = predictions.loc[predictions.index == CI_97_5, col] - predictions_value
+
+                ci_2_5 = np.power(np.power(ci_2_5, 2).dot(sizes) / n, 0.5)
+                ci_97_5 = np.power(np.power(ci_97_5, 2).dot(sizes) / n, 0.5)
+
+                df.loc[CI_2_5, col] = val - ci_2_5
+                df.loc[CI_97_5, col] = val + ci_97_5
         return df
 
     return _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representation, ci_computation)
