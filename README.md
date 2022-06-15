@@ -4,6 +4,13 @@ PhyloDeep is a python library for parameter estimation and model selection from 
 
 For more information on the method, including the covered parameter subspace, please refer to the preprint here: [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v3).
 
+
+[//]: # ([![DOI:10.1101/2021.03.11.435006]&#40;https://zenodo.org/badge/DOI/10.1101/2021.03.11.435006&#41;]&#40;https://doi.org/10.1101/2021.03.11.435006&#41;)
+[![GitHub release](https://img.shields.io/github/v/release/evolbioinfo/phylodeep.svg)](https://github.com/evolbioinfo/phylodeep/releases)
+[![PyPI version](https://badge.fury.io/py/phylodeep.svg)](https://pypi.org/project/phylodeep/)
+[![PyPI downloads](https://shields.io/pypi/dm/phylodeep)](https://pypi.org/project/phylodeep/)
+[![Docker pulls](https://img.shields.io/docker/pulls/evolbioinfo/phylodeep)](https://hub.docker.com/r/evolbioinfo/phylodeep/tags)
+
 Together with the phylodeep package code (in the folder phylodeep), we provide:
 - all data shown in the preprint (in the folder [data_publication](data_publication))
 - used simulators to train deep learners (in the folder [simulators](simulators))
