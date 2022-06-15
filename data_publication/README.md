@@ -2,6 +2,11 @@
 
 This folder contains data used for the Figures and Tables in the PhyloDeep manuscript:
 
+## Preprint
+
+Voznica J, Zhukova A, Boskova V, Saulnier E, Lemoine F, Moslonka-Lefebvre M, Gascuel O (2021)
+__Deep learning from phylogenies to uncover the transmission dynamics of epidemics__. [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v1)
+
 ## Figures
 
 ### Fig_3 : 
@@ -56,7 +61,3 @@ in the folder [Supp_Table_5/BEAST2](Supp_Table_5/BEAST2). To avoid duplicates, i
    - you will find the CI values (100 sets per model (BD, BDEI, BDSS), per tree size (small and big trees) and per method (BEAST2, FFNN-SS and CNN-CBLV)) in the folder [Supp_Table_7](Supp_Table_7)
 
 
-## Preprint
-
-Voznica J, Zhukova A, Boskova V, Saulnier E, Lemoine F, Moslonka-Lefebvre M, Gascuel O (2021)
-__Deep learning from phylogenies to uncover the transmission dynamics of epidemics__. [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v1)
