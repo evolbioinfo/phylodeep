@@ -24,7 +24,7 @@ __Deep learning from phylogenies to uncover the transmission dynamics of epidemi
 ### Supp_Fig_2 : 
    - you will find the test trees (100 per model (BD, BDEI)) in newick format in the folder [Supp_Fig_2/test_trees](Supp_Fig_2/test_trees)
    - you will find the predicted values (100/10,000 per model (BD, BDEI) and per method (BEAST2, FFNN-SS, CNN-CBLV together with target values)) in the folder [Supp_Fig_2/predicted_values](Supp_Fig_2/predicted_values)
-   - you will find all the BEAST2 logs (100 per model (BD, BDEI)) in the folder [Supp_Fig_2/BEAST2_log](Supp_Fig_2/BEAST2_log)
+   - you will find all the BEAST2 logs (100 per model (BD, BDEI)) in the folder [Supp_Fig_2/BEAST2_logs](Supp_Fig_2/BEAST2_logs)
 
 ### Supp_Fig_3 :
   - you will find predicted and target values (1,000 sets per network (FFNN-SS, CNN-CBLV) and per model (BD, BDEI and BDSS)) in the folder [Supp_Fig_3](Supp_Fig_3)
