@@ -10,6 +10,7 @@ For more information on the method, including the covered parameter subspace, pl
 [![PyPI version](https://badge.fury.io/py/phylodeep.svg)](https://pypi.org/project/phylodeep/)
 [![PyPI downloads](https://shields.io/pypi/dm/phylodeep)](https://pypi.org/project/phylodeep/)
 [![Docker pulls](https://img.shields.io/docker/pulls/evolbioinfo/phylodeep)](https://hub.docker.com/r/evolbioinfo/phylodeep/tags)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6646668.svg)](https://doi.org/10.5281/zenodo.6646668)
 
 Together with the phylodeep package code (in the folder phylodeep), we provide:
 - all data shown in the preprint (in the folder [data_publication](data_publication))
