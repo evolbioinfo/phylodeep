@@ -4,21 +4,8 @@ PhyloDeep is a python library for parameter estimation and model selection from 
 
 For more information on the method, including the covered parameter subspace, please refer to the preprint here: [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v3).
 
-Together with the phylodeep package code (in the folder phylodeep), we provide:
-- all data shown in the preprint (in the folder [data_publication](data_publication))
-- used simulators to train deep learners (in the folder [simulators](simulators))
-- the tree analyzed in the study as a showcase application (in the folder [test_tree_HIV_Zurich](test_tree_HIV_Zurich), 
-for description and original reference see below).
-
-The data are extensive (including 50.000 testing trees), we thus do not recommend copying the whole repository.
-
 The installation time of the package can be up to several minutes, including downloading dependencies. The run time 
 should be a couple of seconds. The package was tested in Linux (Ubuntu 18.08), Windows 10 and MacOS.
-
-
-PhyloDeep is available for Python 3.6 on [pip](https://pypi.org/project/phylodeep) (see the installation instructions below).
-
-Alternatively, it can be used via Docker or Singularity: [evolbioinfo/phylodeep](https://hub.docker.com/r/evolbioinfo/phylodeep/tags). 
 
 ## Installation
 
@@ -71,10 +58,11 @@ We recommend to perform a priori model adequacy first to assess whether the inpu
 simulations on which the neural networks were trained.
 
 ### Example data
+
 Here, we use an HIV tree reconstructed from 200 sequences, published in "Phylodynamics on local sexual contact networks" 
 by Rasmussen _et al._ [[PLoS Comput. Biol. 2017]](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005448), 
 which you can find at [PairTree GitHub](https://github.com/davidrasm/PairTree) 
-and in [test_tree_HIV_Zurich/Zurich.trees](test_tree_HIV_Zurich/Zurich.trees). 
+and in [test_tree_HIV_Zurich/Zurich.trees](https://github.com/evolbioinfo/phylodeep/blob/main/test_tree_HIV_Zurich/Zurich.trees). 
 
 ### Python
 
@@ -127,18 +115,18 @@ paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v CNN_FULL_TREE -o HIV_Zurich_BDSS_
 paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v FFNN_SUMSTATS -o HIV_Zurich_BDSS_FFNN_CI.csv -c
 ```
 
-### Example of output and interpretations 
+### Example of output and interpretations
 
 The a priori model adequacy check results in the following figures:
 
 #### BD model adequacy test
-![BD model adequacy](phylodeep/test/BD_model_adequacy.png)
+![BD model adequacy](https://raw.githubusercontent.com/evolbioinfo/phylodeep/main/phylodeep/test/BD_model_adequacy.png)
 
 #### BDEI model adequacy test
-![BDEI model adequacy](phylodeep/test/BDEI_model_adequacy.png)
+![BDEI model adequacy](https://raw.githubusercontent.com/evolbioinfo/phylodeep/main/phylodeep/test/BDEI_model_adequacy.png)
 
 #### BDSS model adequacy test
-![BDSS model adequacy](phylodeep/test/BDSS_model_adequacy.png)
+![BDSS model adequacy](https://raw.githubusercontent.com/evolbioinfo/phylodeep/main/phylodeep/test/BDSS_model_adequacy.png)
 
 For the three models (BD, BDEI and BDSS), HIV tree datapoint (represented by a red star) is well inside the data cloud
 of simulations, where warm colors correspond to high density of simulations. The simulations and HIV tree datapoint were

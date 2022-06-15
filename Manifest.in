@@ -4,3 +4,4 @@ include phylodeep/pca_a_priori/simulated_data/*
 include phylodeep/pretrained_models/models/*
 include phylodeep/pretrained_models/scalers/*
 include phylodeep/pretrained_models/weights/*
+include README_PYPI.md
