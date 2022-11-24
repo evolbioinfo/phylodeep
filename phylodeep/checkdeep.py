@@ -32,7 +32,7 @@ def pca_plot(tree_d, sim_d, variance_explained, png_out):
     fig, (ax1, ax2) = plt.subplots(1,2)
     fig.tight_layout(pad=3.0)
 
-    ax1.scatter(sim_d[:, 0], sim_d[:, 1], c=z, s=100, edgecolor='')
+    ax1.scatter(sim_d[:, 0], sim_d[:, 1], c=z, s=100, edgecolor='white', linewidth=0)
     ax1.plot(tree_d[:, 0], tree_d[:, 1], '*', color='r', markersize=20)
 
     ax1.set_xlim([min(min(sim_d[:, 0]), tree_d[:, 0]), max(max(sim_d[:, 0]), tree_d[:, 0])])
@@ -45,7 +45,7 @@ def pca_plot(tree_d, sim_d, variance_explained, png_out):
     xy2 = np.vstack([sim_d[:, 2], sim_d[:, 3]])
     z2 = gaussian_kde(xy2)(xy2)
 
-    ax2.scatter(sim_d[:, 2], sim_d[:, 3], c=z2, s=100, edgecolor='')
+    ax2.scatter(sim_d[:, 2], sim_d[:, 3], c=z2, s=100, edgecolor='white', linewidth=0)
     ax2.plot(tree_d[:, 2], tree_d[:, 3], '*', color='r', markersize=20)
 
     ax2.set_xlim([min(min(sim_d[:, 2]), tree_d[:, 2]), max(max(sim_d[:, 2]), tree_d[:, 2])])

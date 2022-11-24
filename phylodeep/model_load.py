@@ -3,17 +3,11 @@ import os
 import pickle as pk
 import warnings
 
+import numpy as np
+
 warnings.filterwarnings('ignore')
-
-
-try:
-    from sklearn.externals import joblib
-except:
-    import joblib
-    import sys
-    sys.modules['sklearn.externals.joblib'] = joblib
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 from tensorflow.python.keras.models import model_from_json
 
 
@@ -22,47 +16,46 @@ PRETRAINED_PCA_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'p
 
 
 def pca_scale_load(tree_size, model):
-    pca_reload = pk.load(open(os.path.join(PRETRAINED_PCA_DIR, 'models', model + '_' + tree_size + '_PCA' + '.pkl'),
-                              'rb'))
+    with open(os.path.join(PRETRAINED_PCA_DIR, 'models', '{}_{}_PCA.pkl'.format(model, tree_size)), 'rb') as f:
+        pca_reload = pk.load(f)
 
-    scaler = joblib.load(os.path.join(PRETRAINED_PCA_DIR, 'scalers', model + '_' + tree_size + '_PCA' + '.pkl'))
+    with open(os.path.join(PRETRAINED_PCA_DIR, 'scalers', '{}_{}_PCA.pkl'.format(model, tree_size)), 'rb') as f:
+        scaler = pk.load(f)
 
     return pca_reload, scaler
 
 
 def pca_data_load(tree_size, model):
-    from numpy import genfromtxt
-    pca_data = genfromtxt(PRETRAINED_PCA_DIR + '/simulated_data/' + model + '_' + tree_size + '_PCA' + '.csv',
+    return np.genfromtxt(os.path.join(PRETRAINED_PCA_DIR, 'simulated_data', '{}_{}_PCA.csv'.format(model, tree_size)),
                           delimiter=',')
-
-    return pca_data
 
 
 def model_scale_load_ffnn(tree_size, model):
     pred_method = 'FFNN'
-    json_file = open(os.path.join(PRETRAINED_MODELS_DIR, 'models', model + '_' + tree_size + '_' + pred_method +
-                                  '.json'), 'r')
-    loaded_model = json_file.read()
-    json_file.close()
+    with open(os.path.join(PRETRAINED_MODELS_DIR, 'models', '{}_{}_{}.json'.format(model, tree_size, pred_method)), 'r') \
+            as json_file:
+        loaded_model = json_file.read()
 
     model_ffnn = model_from_json(loaded_model)
-    model_ffnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights', model + '_' + tree_size + '_' + pred_method +
-                                         '.h5'))
-    scaler = joblib.load(os.path.join(PRETRAINED_MODELS_DIR, 'scalers', model + '_' + tree_size + '_' + pred_method +
-                                      '.pkl'))
+    model_ffnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights',
+                                         '{}_{}_{}.h5'.format(model, tree_size, pred_method)))
+
+
+    with open(os.path.join(PRETRAINED_MODELS_DIR, 'scalers', '{}_{}_{}.pkl'.format(model, tree_size, pred_method)), 'rb') as f:
+        scaler = pk.load(f)
 
     return model_ffnn, scaler
 
 
 def model_load_cnn(tree_size, model):
     pred_method = 'CNN'
-    json_file = open(os.path.join(PRETRAINED_MODELS_DIR, 'models', model + '_' + tree_size + '_' + pred_method +
-                                  '.json'), 'r')
-    loaded_model = json_file.read()
-    json_file.close()
+    with open(os.path.join(PRETRAINED_MODELS_DIR, 'models', '{}_{}_{}.json'.format(model, tree_size, pred_method)), 'r') \
+            as json_file:
+        loaded_model = json_file.read()
 
     model_cnn = model_from_json(loaded_model)
-    model_cnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights', model + '_' + tree_size + '_' + pred_method +
-                                        '.h5'))
+    model_cnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights',
+                                        '{}_{}_{}.h5'.format(model, tree_size, pred_method)))
 
     return model_cnn
+

@@ -2,12 +2,16 @@
 
 PhyloDeep is a python library for parameter estimation and model selection from phylogenetic trees, based on deep learning.
 
-For more information on the method, including the covered parameter subspace, please refer to the preprint here: [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v3).
+## Article
+
+Voznica J, Zhukova A, Boskova V, Saulnier E, Lemoine F, Moslonka-Lefebvre M, Gascuel O.
+__Deep learning from phylogenies to uncover the transmission dynamics of epidemics__. [Nat Commun 13, 3896 (2022)](https://www.nature.com/articles/s41467-022-31511-0)
+
+
+## Installation
 
 The installation time of the package can be up to several minutes, including downloading dependencies. The run time 
 should be a couple of seconds. The package was tested in Linux (Ubuntu 18.08), Windows 10 and MacOS.
-
-## Installation
 
 ### Windows
 For **Windows** users, we recommend installing __phylodeep__ via [Cygwin environment](https://www.cygwin.com/).
@@ -111,8 +115,8 @@ checkdeep -t ./Zurich.trees -m BDSS -o BDSS_model_adequacy.png
 modeldeep -t ./Zurich.trees -p 0.25 -v CNN_FULL_TREE -o model_selection.csv
 
 # parameter inference
-paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v CNN_FULL_TREE -o HIV_Zurich_BDSS_CNN.csv
-paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v FFNN_SUMSTATS -o HIV_Zurich_BDSS_FFNN_CI.csv -c
+paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v FFNN_SUMSTATS -o HIV_Zurich_BDSS_CNN.csv
+paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v CNN_FULL_TREE -o HIV_Zurich_BDSS_FFNN_CI.csv -c
 ```
 
 ### Example of output and interpretations
@@ -156,8 +160,3 @@ and 10, superspreading fraction between 0.05 and 0.20).
 The time related parameters (infectious and eventually incubation period for BDEI model) are in the same units as the 
 branches of input tree, here in years (9.78 years). The covered parameter space for time related parameters is large 
 due to internal rescaling of all input trees. It should apply to any tree.
-
-## Preprint
-
-Voznica J, Zhukova A, Boskova V, Saulnier E, Lemoine F, Moslonka-Lefebvre M, Gascuel O (2022)
-__Deep learning from phylogenies to uncover the transmission dynamics of epidemics__. [bioRxiv](https://www.biorxiv.org/content/10.1101/2021.03.11.435006v3)
