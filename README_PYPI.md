@@ -115,8 +115,8 @@ checkdeep -t ./Zurich.trees -m BDSS -o BDSS_model_adequacy.png
 modeldeep -t ./Zurich.trees -p 0.25 -v CNN_FULL_TREE -o model_selection.csv
 
 # parameter inference
-paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v FFNN_SUMSTATS -o HIV_Zurich_BDSS_CNN.csv
-paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v CNN_FULL_TREE -o HIV_Zurich_BDSS_FFNN_CI.csv -c
+paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v FFNN_SUMSTATS -o HIV_Zurich_BDSS_FFNN.csv
+paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v CNN_FULL_TREE -o HIV_Zurich_BDSS_CNN_CI.csv -c
 ```
 
 ### Example of output and interpretations
