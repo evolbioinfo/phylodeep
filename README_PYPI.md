@@ -15,21 +15,21 @@ should be a couple of seconds. The package was tested in Linux (Ubuntu 18.08), W
 
 ### Windows
 For **Windows** users, we recommend installing __phylodeep__ via [Cygwin environment](https://www.cygwin.com/).
-First instal Python 3.6 and pip3 from the Cygwin packages. Then install __phylodeep__:
+First install Python>=3.8 and pip3 from the Cygwin packages. Then install __phylodeep__:
 ```bash
 pip3 install phylodeep
 ```
 
 ### All other platforms
 
-You can install __phylodeep__ for Python 3.6 with or without [conda](https://conda.io/docs/), following the procedures described below:
+You can install __phylodeep__ for Python (version 3.8 or higher) with or without [conda](https://conda.io/docs/), following the procedures described below:
 
 #### Installing with conda
 
-Once you have conda installed, create an environment for __phylodeep__ with Python 3.6 (here we name it phyloenv):
+Once you have conda installed, create an environment for __phylodeep__ with Python>=3.8 (here we name it phyloenv):
 
 ```bash
-conda create --name phyloenv python=3.6
+conda create --name phyloenv python=3.8
 ```
 
 Then activate it:
@@ -45,7 +45,7 @@ pip install phylodeep
 
 #### Installing without conda
 
-Make sure that Pyhon 3.6 and pip3 are installed, then install __phylodeep__:
+Make sure that Python>=3.8 and pip3 are installed, then install __phylodeep__:
 
 ```bash
 pip3 install phylodeep
