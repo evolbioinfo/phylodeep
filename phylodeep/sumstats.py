@@ -290,7 +290,7 @@ def ltt_plot(tre):
                 events.append([node.dist_to_root, 1, 0])
 
     events = np.asmatrix(events)
-    events = np.sort(events.view('i8, i8, i8'), order=['f0'], axis=0).view(np.float)
+    events = np.sort(events.view('i8, i8, i8'), order=['f0'], axis=0).view(float)
 
     events[0, 2] = float(events[0, 1]) + 1
     for j in np.arange(1, events.shape[0]):
