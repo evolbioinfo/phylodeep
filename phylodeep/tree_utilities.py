@@ -137,8 +137,8 @@ def extract_clusters(tre, min_size, max_size):
 
         if n_size < min_size:
             n.add_feature(taken_num_feature, 0)
-        elif n_size <= max_size:
-            n.add_feature(taken_num_feature, n_size)
+        elif n_size < max(2 * min_size, max_size):
+            n.add_feature(taken_num_feature, min(n_size, max_size))
             n.add_feature(selection_strategy_feature, strategy_top)
         else:
             taken = sum(getattr(_, taken_num_feature) for _ in n.children)
@@ -187,6 +187,56 @@ def extract_clusters(tre, min_size, max_size):
                                       .format(n_subtrees, n_subtree_branches, n_branches,
                                               100 * n_subtree_branches / n_branches))
 
+
+def extract_independent_subtrees(tre, min_size, max_size):
+    """
+    Cuts the given tree into subtrees within a given size (s) range: min_size <= s <= max_size,
+    such that they are all independent subtrees of the initial tree.
+    The initial tree object is modified.
+
+    :param max_size: minimal number of tips for a subtree (inclusive)
+    :param min_size: maximal number of tips for a subtree (inclusive)
+    :param tre: ete3.Tree
+    :return: a generator of extracted subtrees
+    """
+    date_feature = 'date'
+    sorted_tips_feature = 'sorted-tips'
+    taken_num_feature = 'taken'
+    selection_strategy_feature = 'how'
+    strategy_top = 'top'
+    strategy_recursive = 'recurse'
+
+    _annotate_relative_dates(tre, date_feature)
+
+    for n in tre.traverse('postorder'):
+        n.add_feature(sorted_tips_feature,
+                      [n] if n.is_leaf()
+                      else _merge(*(getattr(_, sorted_tips_feature) for _ in n.children),
+                                  key=lambda _: getattr(_, date_feature),
+                                  max_size=max_size))
+        n_size = len(n)
+
+        if n_size < min_size:
+            n.add_feature(taken_num_feature, 0)
+        elif n_size < max(2 * min_size, max_size):
+            n.add_feature(taken_num_feature, min(n_size, max_size))
+            n.add_feature(selection_strategy_feature, strategy_top)
+        else:
+            n.add_feature(taken_num_feature, sum(getattr(_, taken_num_feature) for _ in n.children))
+            n.add_feature(selection_strategy_feature, strategy_recursive)
+
+    n_branches = 2 * len(tre) - 2
+    n_subtrees = 0
+    n_subtree_branches = 0
+    for subtree in _dissect_tree(tre, min_size, max_size, date_feature,
+                                 selection_strategy_feature, sorted_tips_feature, strategy_recursive, strategy_top):
+        yield subtree
+        n_subtrees += 1
+        n_subtree_branches += 2 * len(subtree) - 2
+
+    get_logger('subtree_picker').info('Picked {} subtrees covering {} out of {} branches ({:.1f}%).'
+                                      .format(n_subtrees, n_subtree_branches, n_branches,
+                                              100 * n_subtree_branches / n_branches))
 
 def _dissect_tree(tre, min_size, max_size, date_feature, selection_strategy_feature,
                  sorted_tips_feature, strategy_recursive, strategy_top):
@@ -254,9 +304,92 @@ def subtree_picker(in_nwk, out_nwk, min_size=MIN_TREE_SIZE_SMALL, max_size=MIN_T
     if min_size > len(tree):
         raise ValueError('Minimal subtree size cannot be greater than the input tree size.')
 
+    subtrees = []
     with open(out_nwk, 'w+') as f:
         for subtree in extract_clusters(tree, min_size=min_size, max_size=max_size):
+            subtrees.append(subtree)
             f.write(subtree.write() + '\n')
+    return subtrees
+
+
+def independent_picker(in_nwk, out_nwk, min_size=MIN_TREE_SIZE_SMALL, max_size=MIN_TREE_SIZE_HUGE - 1):
+    """
+    Cuts independent subtrees within a given size (s) range: min_size <= s <= max_size from a given tree.
+
+    :param max_size: minimal number of tips for a subtree (inclusive)
+    :param min_size: maximal number of tips for a subtree (inclusive)
+    :param in_nwk: input tree in newick format
+        (must be rooted, without polytomies and containing at least --min_size tips)
+    :param out_nwk: output newick file to store the generated subtrees
+    """
+    if not min_size or not max_size or min_size < 1 or max_size < min_size:
+        raise ValueError('Minimal and maximal subtree sizes must be positive integers such that min_size <= max_size.')
+    tree = read_tree(in_nwk)
+    if min_size > len(tree):
+        raise ValueError('Minimal subtree size cannot be greater than the input tree size.')
+
+    subtrees = []
+    with open(out_nwk, 'w+') as f:
+        for subtree in extract_independent_subtrees(tree, min_size=min_size, max_size=max_size):
+            subtrees.append(subtree)
+            f.write(subtree.write() + '\n')
+    return subtrees
+
+
+def top_picker(in_nwk, out_nwk, size=MIN_TREE_SIZE_HUGE - 1):
+    """
+    Cuts the top part of a given size (size) from the given tree.
+
+    :param size: number of tips for the top part
+    :param in_nwk: input tree in newick format
+        (must be rooted, without polytomies and containing at least --min_size tips)
+    :param out_nwk: output newick file to store the generated subtrees
+    """
+    if not size or size < 1:
+        raise ValueError('Subtree size must be a positive integer.')
+    tre = read_tree(in_nwk)
+    if size > len(tre):
+        raise ValueError('Subtree size cannot be greater than the input tree size.')
+
+    if len(tre) > size:
+        date_feature = 'date'
+        sorted_tips_feature = 'sorted-tips'
+        _annotate_relative_dates(tre, date_feature)
+
+        for n in tre.traverse('postorder'):
+            n.add_feature(sorted_tips_feature,
+                          [n] if n.is_leaf()
+                          else _merge(*(getattr(_, sorted_tips_feature) for _ in n.children),
+                                      key=lambda _: getattr(_, date_feature),
+                                      max_size=size))
+        # tips should contain exactly size oldest tips
+        tips = getattr(tre, sorted_tips_feature)
+        tre = remove_certain_leaves(tre, lambda _: _ not in tips)
+    tre.write(outfile=out_nwk)
+    return [tre]
+
+
+def subsampled_picker(in_nwk, out_nwk, size=MIN_TREE_SIZE_HUGE - 1):
+    """
+    Subsamples the given size to contain exactly size tips.
+
+    :param size: number of tips for the subsampled subtree
+    :param in_nwk: input tree in newick format
+        (must be rooted, without polytomies and containing at least --min_size tips)
+    :param out_nwk: output newick file to store the generated subtrees
+    """
+    if not size or size < 1:
+        raise ValueError('Subtree size must be a positive integer.')
+    tre = read_tree(in_nwk)
+    if size > len(tre):
+        raise ValueError('Subtree size cannot be greater than the input tree size.')
+
+    if len(tre) > size:
+        tips = np.array(list(tre.iter_leaves()))
+        tips = np.random.choice(tips, size=size, replace=False)
+        tre = remove_certain_leaves(tre, lambda _: _ not in tips)
+    tre.write(outfile=out_nwk)
+    return [tre]
 
 
 def subtree_picker_main():
