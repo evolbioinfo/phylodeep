@@ -259,8 +259,8 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
     # add ci values to the output table
     ci_2_5 = pd.DataFrame(data=[ci_2_5], columns=PREDICTED_NAMES[model], index=[CI_2_5])
     ci_97_5 = pd.DataFrame(data=[ci_97_5], columns=PREDICTED_NAMES[model], index=[CI_97_5])
-    pred_vals = pred_vals.append(ci_2_5, ignore_index=True)
-    pred_vals = pred_vals.append(ci_97_5, ignore_index=True)
+    pred_vals = pd.concat([pred_vals, ci_2_5], ignore_index=True)
+    pred_vals = pd.concat([pred_vals, ci_97_5], ignore_index=True)
     pred_vals.index = [PREDICTED_VALUE, CI_2_5, CI_97_5]
 
     return pred_vals
