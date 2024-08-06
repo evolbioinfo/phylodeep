@@ -14,7 +14,7 @@ prediction_method_options = [FULL, SUMSTATS]
 
 def modeldeep(tree_file, proba_sampling, vector_representation=FULL, **kvargs):
     """
-    Provides model selection between birth-death models models for given tree.
+    Provides model selection between birth-death models for given tree.
     For trees of size >= 200 tips, it performs a selection between the basic birth-death model with incomplete sampling
     (BD), the birth-death model with exposed and infectious classes (BDEI) and birth-death model with superspreading
     (BDSS).
@@ -26,8 +26,10 @@ def modeldeep(tree_file, proba_sampling, vector_representation=FULL, **kvargs):
     :type tree_file: str
     :param proba_sampling: presumed sampling probability for all input trees, value between 0.01 and 1
     :type proba_sampling: float
-    :param vector_representation: option to choose between 'FFNN_SUMSTATS' to select a network trained on summary statistics
-    or 'CNN_FULL_TREE' to select a network trained on full tree representation, by default, we use 'CNN FULL TREE'
+    :param vector_representation: option to choose between
+        phylodeep.SUMSTATS to select a network trained on summary statistics
+        or phylodeep.FULL to select a network trained on full tree representation,
+        by default, we use phylodeep.FULL
     :type vector_representation: str
     :return: pd.DataFrame, model selection results in the form of probabilities of each model
     """
@@ -115,8 +117,9 @@ def main():
     prediction_group.add_argument('-v', '--vector_representation', choices=[FULL, SUMSTATS], required=False, type=str,
                                   default=FULL,
                                   help="Choose a type of tree representation and neural networks."
-                                       " You can choose either FULL: CNN trained on full tree representation or"
-                                       " SUMSTATS: FFNN trained on summary statistics. By default set to FULL.")
+                                       " You can choose either {full}: CNN trained on full tree representation or"
+                                       " {sumstats}: FFNN trained on summary statistics. By default set to {full}."
+                                  .format(full=FULL, sumstats=SUMSTATS))
 
     output_group = parser.add_argument_group('output')
     output_group.add_argument('-o', '--output', required=True, type=str, help="The name of the output csv file"

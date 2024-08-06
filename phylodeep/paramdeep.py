@@ -25,17 +25,20 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
     :type tree_file: str
     :param proba_sampling: presumed sampling probability for all input trees, value between 0.01 and 1
     :type proba_sampling: float
-    :param model: option to choose, for a tree of size between 50 and 199 tips, you can choose either 'BD' (basic
-    birth-death model with incomplete sampling BD), 'BDEI' (BD with exposed class); for a tree of size >= 200 tips,
-    you can choose between 'BD', 'BDEI' and  'BDSS' (BD with superspreading).
+    :param model: option to choose, for a tree of size between 50 and 199 tips,
+        you can choose either 'BD' (basic birth-death (BD) model with incomplete sampling),
+        'BDEI' (BD with exposed class);
+        for a tree of size >= 200 tips, you can choose between 'BD', 'BDEI' or 'BDSS' (BD with superspreading).
     :type model: str
-    :param vector_representation: option to choose between 'FFNN_SUMSTATS' to select a network trained on summary
-    statistics or 'CNN_FULL_TREE' to select a network trained on full tree representation, by default, we use
-    'CNN_FULL_TREE'
+    :param vector_representation: option to choose between
+        phylodeep.SUMSTATS to select a network trained on summary statistics
+        or phylodeep.FULL to select a network trained on full tree representation,
+        by default, we use phylodeep.FULL
     :type vector_representation: str
-    :param ci_computation: (optional, default is False) By default (ci_computation=False), paramdeep outputs point
-    estimate for each parameter. With ci_computation=True, paramdeep computes and outputs 95% confidence intervals
-    (2.5% and 97.5%) for estimated value using approximated parametric bootstrap.
+    :param ci_computation: (optional, default is False) By default (ci_computation=False),
+        paramdeep outputs point estimate for each parameter.
+        With ci_computation=True, paramdeep computes and outputs 95% confidence intervals (2.5% and 97.5%)
+        for estimated value using approximated parametric bootstrap.
     :type ci_computation: bool
     :return: pd.DataFrame, predicted parameter values (and 95% CIs if option chosen)
     """
@@ -150,8 +153,9 @@ def main():
 
     prediction_group.add_argument('-v', '--vector_representation', choices=[FULL, SUMSTATS], required=False, type=str,
                                   default=FULL,
-                                  help="Choose neural networks: either FULL: CNN trained on full tree representation or"
-                                       " SUMSTATS: FFNN trained on summary statistics. By default set to FULL.")
+                                  help="Choose neural networks: either {full}: CNN trained on full tree representation "
+                                       "or {sumstats}: FFNN trained on summary statistics. By default set to {full}."
+                                  .format(full=FULL, sumstats=SUMSTATS))
 
     prediction_group.add_argument('-c', '--ci_computation', action='store_true', required=False,
                                   help="By default (without --ci_computation option), paramdeep outputs a csv file"

@@ -4,12 +4,10 @@ import pandas as pd
 import warnings
 import numpy as np
 
-from phylodeep import FULL
-import phylodeep_data_BD_small
-import phylodeep_data_BDEI_small
-import phylodeep_data_BD_large
-import phylodeep_data_BDEI_large
-import phylodeep_data_BDSS_large
+from phylodeep import BD, BDEI
+import phylodeep_data_bd
+import phylodeep_data_bdei
+import phylodeep_data_bdss
 
 PREDICTED_VALUE = 'predicted_value'
 
@@ -22,58 +20,7 @@ warnings.filterwarnings('ignore')
 # PREDICTED = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ci_computation/predicted_values')
 # TARGET = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ci_computation/target_values')
 
-TARGET_NAMES = {'BD': ["R_naught", "Infectious_period", 'sampling_proba', 'tree_size'],
-                'BDEI': ["R_naught", "Infectious_period", "Incubation_period", 'sampling_proba', 'tree_size'],
-                'BDSS': ["R_naught", "Infectious_period", 'X_transmission', 'Superspreading_individuals_fraction', 'sampling_proba', 'tree_size']}
-
-PREDICTED_NAMES = {'BD': ["R_naught", "Infectious_period"],
-                   'BDEI': ["R_naught", "Infectious_period", "Incubation_period"],
-                   'BDSS': ["R_naught", "Infectious_period", 'X_transmission', 'Superspreading_individuals_fraction']}
-
 min_max = {'R_naught': [1, 5], 'X_transmission': [3, 10], 'Superspreading_individuals_fraction': [0.05, 0.20]}
-
-
-def load_and_rename_ci_files(model, encoding, tree_size, target=False):
-    """
-    loads and names files required for CI computation (for approximated parametric bootstrap, true/target and predicted
-     values of simulations are needed)
-    :param model: str, 'BD', 'BDEI' or 'BDSS' corresponding to individual models, to identify the file to load and
-     parameter names
-    :param encoding: str, 'FFNN_SUMSTATS' or 'CNN_FULL_TREE', to identify the file to load
-    :param tree_size: str, 'LARGE' or 'SMALL', corresponding to the size of the tree
-    ('SMALL', if 49<#tips<200; 'LARGE', if 199<#tips<501)
-    :param target: bool, True if the file with true/target values should be loaded, or the file with predicted values
-    :return: pd.DataFrame, containing values for CI computation
-    """
-    # get path to CI files
-    if model == 'BD' and tree_size == 'SMALL':
-        # TODO: this is a quick fix for missing  get_ci() function in module phylodeep-data-BD-small,
-        # ideally the module should be updated instead
-        try:
-            predicted_path, target_path = phylodeep_data_BD_small.get_ci()
-        except AttributeError:
-            predicted_path = os.path.join(os.path.abspath(os.path.dirname(phylodeep_data_BD_small.__file__)),
-                                          'ci_computation/predicted_values')
-            target_path = os.path.join(os.path.abspath(os.path.dirname(phylodeep_data_BD_small.__file__)),
-                                       'ci_computation/target_values')
-    elif model == 'BD' and tree_size == 'LARGE':
-        predicted_path, target_path = phylodeep_data_BD_large.get_ci()
-    elif model == 'BDEI' and tree_size == 'SMALL':
-        predicted_path, target_path = phylodeep_data_BDEI_small.get_ci()
-    elif model == 'BDEI' and tree_size == 'LARGE':
-        predicted_path, target_path = phylodeep_data_BDEI_large.get_ci()
-    elif model == 'BDSS' and tree_size == 'LARGE':
-        predicted_path, target_path = phylodeep_data_BDSS_large.get_ci()
-
-    if target:
-        df = pd.read_csv(target_path + '/' + model + '_' + tree_size + '.csv.gz', header=None)
-        df.columns = TARGET_NAMES[model]
-
-    else:
-        df = pd.read_csv(predicted_path + '/' + model + '_' + tree_size + '_' + encoding + '.csv.gz', header=None)
-        df.columns = PREDICTED_NAMES[model]
-
-    return df
 
 
 def standardize_for_knn(predicted, target_ci):
@@ -192,14 +139,10 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
     """
     pred_vals_original = pred_vals.copy()
 
-    # load files for CI computation
-    if vector_repre == FULL:
-        target_vals_ci = load_and_rename_ci_files(model, 'CNN', tr_size, target=True)
-        predicted_vals_ci = load_and_rename_ci_files(model, 'CNN', tr_size)
+    get_ci_tables = phylodeep_data_bd.get_ci_tables if BD == model else phylodeep_data_bdei.get_ci_tables \
+        if BDEI == model else phylodeep_data_bdss.get_ci_tables
 
-    else:
-        target_vals_ci = load_and_rename_ci_files(model, 'FFNN', tr_size, target=True)
-        predicted_vals_ci = load_and_rename_ci_files(model, 'FFNN', tr_size)
+    predicted_vals_ci, target_vals_ci = get_ci_tables(encoding=vector_repre, tree_size=tr_size)
 
     # subset sampling probability and tree size parameters
 
@@ -222,7 +165,10 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
                      filt_1_ci_samp_proba, sampling_proba_indexes)
 
     # rescaled to original values of pred_vals:
-    for elt in PREDICTED_NAMES[model]:
+    predicted_col_names = phylodeep_data_bd.PREDICTED_NAMES if BD == model else phylodeep_data_bdei.PREDICTED_NAMES \
+        if BDEI == model else phylodeep_data_bdss.PREDICTED_NAMES
+
+    for elt in predicted_col_names:
         if 'period' in elt:
             pred_vals[elt] = pred_vals[elt] * resc_factor
 
@@ -230,7 +176,7 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
     ci_2_5 = []
     ci_97_5 = []
 
-    for elt in PREDICTED_NAMES[model]:
+    for elt in predicted_col_names:
         # find indexes of closest parameter sets within predicted values of CI set (evaluated altogether)
         top_ind = get_indexes_of_closest_single_factor(pred_vals_standardized[elt].values, filt_2_param_ci_standardized[elt], 1000)
 
@@ -257,8 +203,8 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
         ci_97_5.append(qtls[1])
 
     # add ci values to the output table
-    ci_2_5 = pd.DataFrame(data=[ci_2_5], columns=PREDICTED_NAMES[model], index=[CI_2_5])
-    ci_97_5 = pd.DataFrame(data=[ci_97_5], columns=PREDICTED_NAMES[model], index=[CI_97_5])
+    ci_2_5 = pd.DataFrame(data=[ci_2_5], columns=predicted_col_names, index=[CI_2_5])
+    ci_97_5 = pd.DataFrame(data=[ci_97_5], columns=predicted_col_names, index=[CI_97_5])
     pred_vals = pred_vals.append(ci_2_5, ignore_index=True)
     pred_vals = pred_vals.append(ci_97_5, ignore_index=True)
     pred_vals.index = [PREDICTED_VALUE, CI_2_5, CI_97_5]

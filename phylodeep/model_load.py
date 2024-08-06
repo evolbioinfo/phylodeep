@@ -4,12 +4,10 @@ import pickle as pk
 import warnings
 
 import numpy as np
+from tensorflow.python.keras.models import model_from_json
 
 warnings.filterwarnings('ignore')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-from tensorflow.python.keras.models import model_from_json
-
 
 PRETRAINED_MODELS_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pretrained_models')
 PRETRAINED_PCA_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pca_a_priori')
@@ -40,8 +38,8 @@ def model_scale_load_ffnn(tree_size, model):
     model_ffnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights',
                                          '{}_{}_{}.h5'.format(model, tree_size, pred_method)))
 
-
-    with open(os.path.join(PRETRAINED_MODELS_DIR, 'scalers', '{}_{}_{}.pkl'.format(model, tree_size, pred_method)), 'rb') as f:
+    with open(os.path.join(PRETRAINED_MODELS_DIR, 'scalers', '{}_{}_{}.pkl'.format(model, tree_size, pred_method)),
+              'rb') as f:
         scaler = pk.load(f)
 
     return model_ffnn, scaler
@@ -49,8 +47,8 @@ def model_scale_load_ffnn(tree_size, model):
 
 def model_load_cnn(tree_size, model):
     pred_method = 'CNN'
-    with open(os.path.join(PRETRAINED_MODELS_DIR, 'models', '{}_{}_{}.json'.format(model, tree_size, pred_method)), 'r') \
-            as json_file:
+    with open(os.path.join(PRETRAINED_MODELS_DIR, 'models', '{}_{}_{}.json'.format(model, tree_size, pred_method)),
+              'r') as json_file:
         loaded_model = json_file.read()
 
     model_cnn = model_from_json(loaded_model)

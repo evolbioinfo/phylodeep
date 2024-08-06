@@ -24,10 +24,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3 :: Only',
     ],
-    version='0.3.1',
+    version='0.4',
     description='Phylodynamic paramater and model inference using pretrained deep neural networks.',
     author='Jakub Voznica',
     author_email='jakub.voznica@pasteur.fr',
@@ -36,12 +35,14 @@ setup(
     url='https://github.com/evolbioinfo/phylodeep',
     keywords=['phylodynamics', 'molecular epidemiology', 'phylogeny', 'model selection',
               'paramdeep', 'phylodeep', 'deep learning', 'convolutional networks'],
-    python_requires='>=3.8',
-    install_requires=['ete3>=3.1.1', 'pandas>=1.0.0', 'numpy>=1.22', 'scipy>=1.5.0',
-                      'scikit-learn>=1.1.3', 'tensorflow>=2.10.0', 'h5py>=3.0.0', 'Keras>=2.11.0', 'matplotlib>=3.6.0',
-                      'phylodeep-data-BD-small', 'phylodeep-data-BD-large>=0.0.2',
-                      'phylodeep-data-BDEI-small', 'phylodeep-data-BDEI-large',
-                      'phylodeep-data-BDSS-large'],
+    python_requires='>=3.9',
+    install_requires=['scikit-learn>=1.1.3,<1.3.0',
+                      'tensorflow==2.5.3', # this tensorflow is compatible with the keras version below
+                      'ete3>=3.1.1,<=3.1.3', 'pandas>=1.0.0,<1.4.0', 'matplotlib>=3.6.0,<3.7.0',
+                      'keras==2.2.4', # keras must be this version as the models are encoded with it
+                      'phylodeep_data_bd>=0.6', 'phylodeep_data_bdei>=0.4', 'phylodeep_data_bdss>=0.4',
+                      # 'scipy>=1.5.0,<1.10.0', 'numpy~=1.19.2' # these are already installed via other libraries
+                      ],
     entry_points={
             'console_scripts': [
                 'checkdeep = phylodeep.checkdeep:main',
