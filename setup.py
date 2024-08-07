@@ -10,8 +10,8 @@ setup(
                                 os.path.join('pca_a_priori', 'simulated_data', '*.csv'),
                                 os.path.join('pretrained_models', 'models', '*.json'),
                                 os.path.join('pretrained_models', 'scalers', '*.pkl'),
-                                os.path.join('pretrained_models', 'weights', '*.h5'),
-                                'README_PYPI.md']},
+                                os.path.join('pretrained_models', 'weights', '*.h5')],
+                  '': ['README_PYPI.md', 'LICENCE']},
     long_description=open('README_PYPI.md').read(),
     long_description_content_type='text/markdown',
     classifiers=[
@@ -26,7 +26,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
     ],
-    version='0.4',
+    version='0.5',
     description='Phylodynamic paramater and model inference using pretrained deep neural networks.',
     author='Jakub Voznica',
     author_email='jakub.voznica@pasteur.fr',
@@ -35,7 +35,7 @@ setup(
     url='https://github.com/evolbioinfo/phylodeep',
     keywords=['phylodynamics', 'molecular epidemiology', 'phylogeny', 'model selection',
               'paramdeep', 'phylodeep', 'deep learning', 'convolutional networks'],
-    python_requires='>=3.9',
+    python_requires='>=3.8',
     install_requires=['scikit-learn>=1.1.3,<1.3.0',
                       'tensorflow==2.5.3', # this tensorflow is compatible with the keras version below
                       'ete3>=3.1.1,<=3.1.3', 'pandas>=1.0.0,<1.4.0', 'matplotlib>=3.6.0,<3.7.0',
