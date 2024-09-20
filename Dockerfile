@@ -10,7 +10,7 @@ ENV LANG C.UTF-8
 # Build-time environmental variable so that apt doesn't complain
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN cd /usr/local/ && pip3 install --no-cache-dir phylodeep==0.6
+RUN cd /usr/local/ && pip3 install --no-cache-dir phylodeep==0.8
 
 # File Author / Maintainer
 MAINTAINER Anna Zhukova <anna.zhukova@pasteur.fr>
@@ -18,5 +18,5 @@ MAINTAINER Anna Zhukova <anna.zhukova@pasteur.fr>
 # Clean up
 RUN mkdir /pasteur
 
-# The entrypoint runs BDEI parameter inference with command line arguments
-ENTRYPOINT ["paramdeep"]
+# The entrypoint runs the command line
+ENTRYPOINT ["/bin/bash"]

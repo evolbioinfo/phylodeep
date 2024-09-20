@@ -2,7 +2,7 @@ import warnings
 
 import pandas as pd
 
-from phylodeep import FULL, SUMSTATS, BD, BDEI, BDSS
+from phylodeep import FULL, SUMSTATS, BD, BDEI, BDSS, MODEL2PARAMS
 from phylodeep.ci_comput import ci_comp, CI_2_5, PREDICTED_VALUE, CI_97_5
 from phylodeep.encoding import encode_into_summary_statistics, encode_into_most_recent
 from phylodeep.model_load import model_scale_load_ffnn, model_load_cnn
@@ -62,15 +62,16 @@ def paramdeep(tree_file, proba_sampling, model=BD, vector_representation=FULL, c
                          .format(BDSS, MIN_TREE_SIZE_LARGE))
 
     if tree_size == HUGE:
-        predictions = pd.DataFrame()
+        predictions = []
         sizes = []
         # estimate parameters on subtrees
         for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_SMALL if model != BDSS else MIN_TREE_SIZE_LARGE,
                                         max_size=MIN_TREE_SIZE_HUGE - 1):
             subtree_size = check_tree_size(subtree)
-            predictions = predictions.append(
+            predictions.append(
                 _paramdeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation, ci_computation))
             sizes.append(len(subtree))
+        predictions = pd.concat(predictions)
         df = pd.DataFrame(columns=predictions.columns)
         sizes = np.array(sizes)
         n = sum(sizes)
@@ -112,7 +113,7 @@ def _paramdeep_tree(tree, tree_size, model, proba_sampling, vector_representatio
     elif vector_representation == FULL:
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
     # annotate predictions:
-    predictions = annotator(predictions, model)
+    predictions.columns = MODEL2PARAMS[model]
     # if required, computation of 95% confidence intervals
     if ci_computation:
         predictions = ci_comp(predictions, model, rescale_factor, len(tree), tree_size, proba_sampling,

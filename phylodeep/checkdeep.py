@@ -96,12 +96,13 @@ def checkdeep(tree_file, model=BD, outputfile_png='a_priori_check.png', **kvargs
 
     # encode the tree
     if tree_size == HUGE:
-        encoded_subtrees = pd.DataFrame()
+        encoded_subtrees = []
         sizes = []
         # estimate model probabilities on subtrees
         for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_LARGE, max_size=MIN_TREE_SIZE_HUGE - 1):
-            encoded_subtrees = encoded_subtrees.append(encode_into_summary_statistics(subtree, sampling_proba=0)[0])
+            encoded_subtrees.append(encode_into_summary_statistics(subtree, sampling_proba=0)[0])
             sizes.append(len(subtree))
+        encoded_subtrees = pd.concat(encoded_subtrees)
         encoded_tree = pd.DataFrame(columns=encoded_subtrees.columns)
         encoded_subtrees['weight'] = sizes
         encoded_subtrees['weight'] /= sum(sizes)

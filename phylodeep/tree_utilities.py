@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 from ete3 import Tree
+from phylodeep import TIME_DEPENDENT_COLUMNS
 
 HUGE = 'HUGE'
 
@@ -317,29 +318,6 @@ def remove_certain_leaves(tr, to_remove=lambda node: False):
     return tr
 
 
-def annotator(predict, mod):
-    """
-    annotates the pd.DataFrame containing predicted values
-    :param predict: predicted values
-    :type: pd.DataFrame
-    :param mod: model under which the parameters were estimated
-    :type: str
-    :return:
-    """
-
-    if mod == "BD":
-        predict.columns = ["R_naught", "Infectious_period"]
-    elif mod == "BDEI":
-        predict.columns = ["R_naught", "Infectious_period", "Incubation_period"]
-    elif mod == "BDSS":
-        predict.columns = ["R_naught", "Infectious_period", "X_transmission", "Superspreading_individuals_fraction"]
-    elif mod == "BD_vs_BDEI_vs_BDSS":
-        predict.columns = ["Probability_BDEI", "Probability_BD", "Probability_BDSS"]
-    elif mod == "BD_vs_BDEI":
-        predict.columns = ["Probability_BD", "Probability_BDEI"]
-    return predict
-
-
 def rescaler(predict, rescale_f):
     """
     rescales the predictions back to the initial tree scale (e.g. days, weeks, years)
@@ -351,7 +329,7 @@ def rescaler(predict, rescale_f):
     """
 
     for elt in predict.columns:
-        if "period" in elt:
-            predict[elt] = predict[elt]*rescale_f
+        if elt in TIME_DEPENDENT_COLUMNS:
+            predict[elt] *= rescale_f
 
     return predict

@@ -4,7 +4,7 @@ import pandas as pd
 import warnings
 import numpy as np
 
-from phylodeep import BD, BDEI
+from phylodeep import BD, BDEI, TIME_DEPENDENT_COLUMNS, P, TREE_SIZE
 import phylodeep_data_bd
 import phylodeep_data_bdei
 import phylodeep_data_bdss
@@ -146,9 +146,9 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
 
     # subset sampling probability and tree size parameters
 
-    ci_samp_proba = target_vals_ci["sampling_proba"]
-    ci_tr_size = target_vals_ci["tree_size"]
-    target_vals_ci.drop(['sampling_proba', 'tree_size'], axis=1, inplace=True)
+    ci_samp_proba = target_vals_ci[P]
+    ci_tr_size = target_vals_ci[TREE_SIZE]
+    target_vals_ci.drop([P, TREE_SIZE], axis=1, inplace=True)
 
     # standardize data for KNN search
     pred_vals_standardized, target_vals_ci_standardized = standardize_for_knn(pred_vals, target_vals_ci)
@@ -169,7 +169,7 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
         if BDEI == model else phylodeep_data_bdss.PREDICTED_NAMES
 
     for elt in predicted_col_names:
-        if 'period' in elt:
+        if elt in TIME_DEPENDENT_COLUMNS:
             pred_vals[elt] = pred_vals[elt] * resc_factor
 
     # compute ci intervals based on 1,000 knn from the remaining 10,000 CI sets
@@ -178,7 +178,8 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
 
     for elt in predicted_col_names:
         # find indexes of closest parameter sets within predicted values of CI set (evaluated altogether)
-        top_ind = get_indexes_of_closest_single_factor(pred_vals_standardized[elt].values, filt_2_param_ci_standardized[elt], 1000)
+        top_ind = get_indexes_of_closest_single_factor(pred_vals_standardized[elt].values,
+                                                       filt_2_param_ci_standardized[elt], 1000)
 
         # errors on closest parameters sets, list
         error_closest = get_error_closest_single(top_ind, filt_2_ci_param, filt_2_predicted_ci, elt)
@@ -188,13 +189,13 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
         centered = [float(item - median_error + pred_vals_original[elt].values) for item in error_closest.values]
 
         # rescale if time period:
-        if 'period' in elt:
+        if elt in TIME_DEPENDENT_COLUMNS:
             centered_resc = [item * resc_factor for item in centered]
         else:
             centered_resc = centered
 
         # min_max: not used on periods for real data, as they depend on the scale
-        if 'period' not in elt:
+        if elt not in TIME_DEPENDENT_COLUMNS:
             centered_resc = [max(min_max[elt][0], item) for item in centered_resc]
             centered_resc = [min(min_max[elt][1], item) for item in centered_resc]
 
@@ -203,10 +204,8 @@ def ci_comp(pred_vals, model, resc_factor, nb_tips, tr_size, samp_proba, vector_
         ci_97_5.append(qtls[1])
 
     # add ci values to the output table
-    ci_2_5 = pd.DataFrame(data=[ci_2_5], columns=predicted_col_names, index=[CI_2_5])
-    ci_97_5 = pd.DataFrame(data=[ci_97_5], columns=predicted_col_names, index=[CI_97_5])
-    pred_vals = pred_vals.append(ci_2_5, ignore_index=True)
-    pred_vals = pred_vals.append(ci_97_5, ignore_index=True)
-    pred_vals.index = [PREDICTED_VALUE, CI_2_5, CI_97_5]
+    pred_vals.index = [PREDICTED_VALUE]
+    pred_vals.loc[CI_2_5, predicted_col_names] = ci_2_5
+    pred_vals.loc[CI_97_5, predicted_col_names] = ci_97_5
 
     return pred_vals

@@ -32,27 +32,29 @@ The installation time of the package can be up to several minutes, including dow
 should be a couple of seconds. The package was tested in Linux (Ubuntu 18.08), Windows 10 and MacOS.
 
 
-PhyloDeep is available for Python>=3.9 on [pip](https://pypi.org/project/phylodeep) (see the installation instructions below).
+PhyloDeep is available for Python>=3.8 on [pip](https://pypi.org/project/phylodeep) (see the installation instructions below).
 
-Alternatively, it can be used via Docker or Singularity: [evolbioinfo/phylodeep](https://hub.docker.com/r/evolbioinfo/phylodeep/tags). 
+Alternatively, it can be used via [docker](https://www.docker.com/community-edition) or [apptainer](https://apptainer.org/): 
+[evolbioinfo/phylodeep](https://hub.docker.com/r/evolbioinfo/phylodeep/tags). 
 
-### Windows
+
+### Installation with Python3 on Windows
 For **Windows** users, we recommend installing __phylodeep__ via [Cygwin environment](https://www.cygwin.com/).
-First install Python>=3.9 and pip3 from the Cygwin packages. Then install __phylodeep__:
+First install Python>=3.8 and pip3 from the Cygwin packages. Then install __phylodeep__:
 ```bash
 pip3 install phylodeep
 ```
 
-### All other platforms
+### Installation with Python3 on all other platforms
 
-You can install __phylodeep__ for Python (version 3.9 or higher) with or without [conda](https://conda.io/docs/), following the procedures described below:
+You can install __phylodeep__ for Python (version 3.8 or higher) with or without [conda](https://conda.io/docs/), following the procedures described below:
 
 #### Installing with conda
 
 Once you have conda installed, create an environment for __phylodeep__ with Python>=3.9 (here we name it phyloenv):
 
 ```bash
-conda create --name phyloenv python=3.9
+conda create --name phyloenv python=3.8
 ```
 
 Then activate it:
@@ -68,7 +70,7 @@ pip install phylodeep
 
 #### Installing without conda
 
-Make sure that Python>=3.9 and pip3 are installed, then install __phylodeep__:
+Make sure that Python>=3.8 and pip3 are installed, then install __phylodeep__:
 
 ```bash
 pip3 install phylodeep
@@ -141,6 +143,18 @@ paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v FFNN_SUMSTATS -o HIV_Zurich_BDSS_
 paramdeep -t ./Zurich.trees -p 0.25 -m BDSS -v CNN_FULL_TREE -o HIV_Zurich_BDSS_CNN_CI.csv -c
 ```
 
+### Apptainer
+
+Once [apptainer](https://apptainer.org/docs/user/latest/quick_start.html#installation) is installed, 
+run the following command:
+
+```bash
+apptainer run docker://evolbioinfo/phylodeep
+```
+
+This will launch a terminal session within the container, 
+in which you can run PhyloDeep following the instructions for the command line above.
+
 ### Example of output and interpretations 
 
 The a priori model adequacy check results in the following figures:
@@ -182,4 +196,3 @@ and 10, superspreading fraction between 0.05 and 0.20).
 The time related parameters (infectious and eventually incubation period for BDEI model) are in the same units as the 
 branches of input tree, here in years (9.78 years). The covered parameter space for time related parameters is large 
 due to internal rescaling of all input trees. It should apply to any tree.
-

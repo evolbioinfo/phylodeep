@@ -1,12 +1,13 @@
 
+import warnings
+
 import pandas as pd
 
-from phylodeep import FULL, SUMSTATS
+from phylodeep import FULL, SUMSTATS, MODEL2PROBS
 from phylodeep.encoding import encode_into_summary_statistics, encode_into_most_recent
 from phylodeep.model_load import model_scale_load_ffnn, model_load_cnn
 from phylodeep.tree_utilities import *
 
-import warnings
 warnings.filterwarnings("ignore")
 
 prediction_method_options = [FULL, SUMSTATS]
@@ -51,14 +52,14 @@ def modeldeep(tree_file, proba_sampling, vector_representation=FULL, **kvargs):
         model = "BD_vs_BDEI"
 
     if tree_size == HUGE:
-        predictions = pd.DataFrame()
+        predictions = []
         sizes = []
         # estimate model probabilities on subtrees
         for subtree in extract_clusters(tree, min_size=MIN_TREE_SIZE_LARGE, max_size=MIN_TREE_SIZE_HUGE - 1):
             subtree_size = check_tree_size(subtree)
-            predictions = predictions.append(
-                _modeldeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation))
+            predictions.append(_modeldeep_tree(subtree, subtree_size, model, proba_sampling, vector_representation))
             sizes.append(len(subtree))
+        predictions = pd.concat(predictions)
         df = pd.DataFrame(columns=predictions.columns)
         predictions['weight'] = sizes
         predictions['weight'] /= sum(sizes)
@@ -86,8 +87,8 @@ def _modeldeep_tree(tree, tree_size, model, proba_sampling, vector_representatio
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
     elif vector_representation == FULL:
         predictions = pd.DataFrame(loaded_model.predict(encoded_tree))
-    # annotate predictions:
-    predictions = annotator(predictions, model)
+    # annotate predictions
+    predictions.columns = MODEL2PROBS[model]
     # if inferred paramater values: rescale back the rates
     predictions = rescaler(predictions, rescale_factor)
     return predictions

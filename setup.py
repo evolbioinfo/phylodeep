@@ -27,7 +27,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
     ],
-    version='0.6',
+    version='0.8',
     description='Phylodynamic paramater and model inference using pretrained deep neural networks.',
     author='Jakub Voznica',
     author_email='jakub.voznica@pasteur.fr',
@@ -37,12 +37,12 @@ setup(
     keywords=['phylodynamics', 'molecular epidemiology', 'phylogeny', 'model selection',
               'paramdeep', 'phylodeep', 'deep learning', 'convolutional networks'],
     python_requires='>=3.8',
-    install_requires=['scikit-learn>=1.1.3,<1.3.0',
-                      'tensorflow==2.5.3', # this tensorflow is compatible with the keras version below
-                      'ete3>=3.1.1,<=3.1.3', 'pandas>=1.0.0,<1.4.0', 'matplotlib>=3.6.0,<3.7.0',
-                      'keras==2.2.4', # keras must be this version as the models are encoded with it
+    install_requires=['scikit-learn==1.5.2',
+                      'tensorflow==2.17.0',
+                      'ete3==3.1.3', 'matplotlib==3.9.2',
+                      'keras==3.5.0',
                       'phylodeep_data_bd>=0.6', 'phylodeep_data_bdei>=0.4', 'phylodeep_data_bdss>=0.4',
-                      # 'scipy>=1.5.0,<1.10.0', 'numpy~=1.19.2' # these are already installed via other libraries
+                      # 'scipy==1.13.1', 'numpy==1.26.4', 'pandas==2.2.2' # these are already installed via other libraries
                       ],
     entry_points={
             'console_scripts': [
