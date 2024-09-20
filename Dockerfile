@@ -10,7 +10,7 @@ ENV LANG C.UTF-8
 # Build-time environmental variable so that apt doesn't complain
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN cd /usr/local/ && pip3 install --no-cache-dir phylodeep==0.8
+RUN cd /usr/local/ && pip3 install --no-cache-dir phylodeep==0.9
 
 # File Author / Maintainer
 MAINTAINER Anna Zhukova <anna.zhukova@pasteur.fr>
