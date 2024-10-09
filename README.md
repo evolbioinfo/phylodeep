@@ -196,3 +196,4 @@ and 10, superspreading fraction between 0.05 and 0.20).
 The time related parameters (infectious and eventually incubation period for BDEI model) are in the same units as the 
 branches of input tree, here in years (9.78 years). The covered parameter space for time related parameters is large 
 due to internal rescaling of all input trees. It should apply to any tree.
+

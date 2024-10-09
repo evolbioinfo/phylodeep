@@ -2,11 +2,11 @@ import os
 import pickle as pk
 import warnings
 
-import numpy as np
-from tensorflow import keras
+import tensorflow as tf
+tf.get_logger().setLevel('ERROR')
 
-warnings.filterwarnings('ignore')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import numpy as np
+
 
 PRETRAINED_MODELS_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pretrained_models')
 PRETRAINED_PCA_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pca_a_priori')
@@ -36,7 +36,7 @@ def model_scale_load_ffnn(tree_size, model):
     # model_ffnn = keras.models.model_from_json(loaded_model)
     # model_ffnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights',
     #                                      '{}_{}_{}.h5'.format(model, tree_size, pred_method)))
-    model_ffnn = keras.models.load_model(
+    model_ffnn = tf.keras.models.load_model(
         os.path.join(PRETRAINED_MODELS_DIR, 'models', '{}_{}_{}.h5'.format(model, tree_size, pred_method)),
         compile=False)
 
@@ -56,7 +56,7 @@ def model_load_cnn(tree_size, model):
     # model_cnn = keras.models.model_from_json(loaded_model)
     # model_cnn.load_weights(os.path.join(PRETRAINED_MODELS_DIR, 'weights',
     #                                     '{}_{}_{}.h5'.format(model, tree_size, pred_method)))
-    model_cnn = keras.models.load_model(
+    model_cnn = tf.keras.models.load_model(
         os.path.join(PRETRAINED_MODELS_DIR, 'models', '{}_{}_{}.h5'.format(model, tree_size, pred_method)),
         compile=False)
 

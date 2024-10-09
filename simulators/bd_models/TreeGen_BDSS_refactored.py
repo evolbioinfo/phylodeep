@@ -165,7 +165,7 @@ def simulate_bdss_tree_gillespie(tr_r11, tr_r12, tr_r21, tr_r22, removal_r, samp
         else:
             nb_which_leaf = np.random.randint(0, metrics['number_inf2_leaves'])
             which_leaf = leaves_dict['inf2_leaves'][nb_which_leaf]
-            leaves_dict['inf2_leaves'][nb_which_leaf]
+            del leaves_dict['inf2_leaves'][nb_which_leaf]
             metrics['number_inf2_leaves'] -= 1
 
         # which_leaf becomes a tip
